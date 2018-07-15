@@ -20,10 +20,10 @@
           (recur new-c new-r (conj coord-sets coords)))))))
 
 (defn get-cards [image
-                 [second-offset-x second-offset-y]
+                 offset-coords
                  [card-width card-height]
-                 [columns rows]]
+                 layout]
   (map #(img/sub-image image (first %) (second %) card-width card-height)
-       (get-cards-coordinates [second-offset-x second-offset-y]
+       (get-cards-coordinates offset-coords
                               [card-width card-height]
-                              [columns rows])))
+                              layout)))
