@@ -4,7 +4,10 @@
   (:import [java.awt.Color]))
 
 (defn- create-white-image [width height]
-  (let [bg (img/new-image width height)]
+  ;; Create background without alpha channels.
+  ;; At the time of writing mikera/imagez only allows loading images
+  ;; as ARGB but in case this changes we don't want alpha.
+  (let [bg (img/new-image width height false)]
     (img/fill! bg color/white)))
 
 (defn- get-width [number-of-cards

@@ -10,5 +10,5 @@
 
 (defn collect-cards [fronts backs columns]
   "Assumption: paper is portrait and should be printed long edge"
-  (let [backs (-> backs order-backs rotate-backs)]
+  (let [backs (-> backs rotate-backs (order-backs columns))]
     (map vector fronts backs)))
