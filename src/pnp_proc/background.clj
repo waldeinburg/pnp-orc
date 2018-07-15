@@ -27,12 +27,11 @@
               (dec (+ left-edge card-width))])
           (range number-of-cards)))
 
-(defn- get-horizontal-lines [max-y margin-y card-height]
-  [margin-y
-   (dec (+ margin-y card-height))
-   (/ max-y 2)
-   (inc (- max-y margin-y card-height))
-   (- max-y margin-y)])
+(defn- get-horizontal-lines [margin-y card-height fold-margin-y]
+  (reductions +
+              [margin-y (dec card-height)               ; front
+               (inc fold-margin-y)                      ; fold line
+               (inc fold-margin-y) (dec card-height)])) ; back
 
 (defn create-background [number-of-cards
                          [margin-x margin-y]
@@ -43,7 +42,7 @@
         max-x (dec width)
         max-y (dec height)
         ver-lines (get-vertical-lines number-of-cards margin-x card-width spacing-x)
-        hor-lines (get-horizontal-lines max-y margin-y card-height)
+        hor-lines (get-horizontal-lines margin-y card-height fold-margin-y)
         bg (create-white-image width height)
         gr (img/graphics bg)]
     (.setColor gr Color/black)
