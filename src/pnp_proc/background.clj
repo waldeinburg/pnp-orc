@@ -1,14 +1,13 @@
 (ns pnp-proc.background
-  (:require [mikera.image.core :as img]
-            [mikera.image.colours :as col])
-  (:import [java.awt.Color]))
+  (:require [mikera.image.core :as img])
+  (:import java.awt.Color))
 
 (defn- create-white-image [width height]
   ;; Create background without alpha channels.
   ;; At the time of writing mikera/imagez only allows loading images
   ;; as ARGB but in case this changes we don't want alpha.
   (let [bg (img/new-image width height false)]
-    (img/fill! bg color/white)))
+    (img/fill! bg Color/white)))
 
 (defn- get-width [number-of-cards
                   margin-x card-width spacing-x]
