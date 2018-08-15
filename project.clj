@@ -8,7 +8,5 @@
                  ; this uses PDFBox 2.0.8 and should be updated when possible
                  [pdfboxing "0.1.14.1-SNAPSHOT"]] 
   :main ^:skip-aot pnp-proc.core
-  ;; AOT for gen-class and the ns using it.
-  :aot [pnp-proc.BitmapDpiFinder pnp-proc.dump]
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
