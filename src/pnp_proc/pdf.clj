@@ -11,18 +11,25 @@
     (map #(.getXObject res %)
          (.getXObjectNames res))))
 
-(defn- get-images-from-content-stream [^PDContentStream cs]
+(defn get-images-from-content-stream [^PDContentStream cs]
+  "Get images as a lazy sequence from a content stream, e.g., a page"
   (mapcat #(if (instance? PDImageXObject %)
              [(.getImage %)]
              (if (instance? PDContentStream %)
                (get-images-from-content-stream %)))
           (get-objects cs)))
 
-(defn- get-pages-from-document [^PDDocument doc]
-  (iterator-seq (.iterator
-                 (.getPages doc))))
+(defmacro with-open-doc [binding & body]
+  (let [name (first binding)
+        pdf (second binding)]
+    `(with-open [~name
+                 (pdfboxing.common/obtain-document ~pdf)]
+       ~@body)))
 
 (defn get-images-from-pdf [pdf]
-  (with-open [doc (pdfboxing.common/obtain-document pdf)]
-    (mapcat get-images-from-content-stream
-            (get-pages-from-document doc))))
+  "Get images from pdf.
+   The sequence is realized and the document is closed."
+  (with-open-doc [doc pdf]
+    (doall ; Or else the document might be closed when reading an image.
+     (mapcat get-images-from-content-stream
+             (.getPages doc)))))
