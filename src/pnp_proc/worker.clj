@@ -1,5 +1,5 @@
 (ns pnp-proc.worker
-  (:require [mikera.image.core :as img]
+  (:require [mikera.image.core   :as img]
             [pnp-proc.segmenting :as segmenting]
             [pnp-proc.collecting :as collecting]
             [pnp-proc.assembling :as assembling]))
