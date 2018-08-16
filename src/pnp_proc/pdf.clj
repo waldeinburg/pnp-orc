@@ -26,10 +26,18 @@
                  (pdfboxing.common/obtain-document ~pdf)]
        ~@body)))
 
-(defn get-images-from-pdf [pdf]
+(defn get-images-from-pdf
   "Get images from pdf.
+   Optionally specify a sequence of page indexes.
    The sequence is realized and the document is closed."
-  (with-open-doc [doc pdf]
-    (doall ; Or else the document might be closed when reading an image.
-     (mapcat get-images-from-content-stream
-             (.getPages doc)))))
+  ([pdf]
+   (get-images-from-pdf pdf []))
+  ([pdf page-idxs]
+   (with-open-doc [doc pdf]
+     (let [all-pages (.getPages doc)
+           pages (if (empty? page-idxs)
+                   all-pages
+                   (map (partial nth all-pages) page-idxs))]
+       (doall ; Or else the document might be closed when reading an image.
+        (mapcat get-images-from-content-stream
+                pages))))))
