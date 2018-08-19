@@ -1,8 +1,6 @@
 (ns pnp-proc.worker
-  (:require [mikera.image.core   :as img]
-            [pnp-proc.segmenting :as segmenting]
-            [pnp-proc.collecting :as collecting]
-            [pnp-proc.assembling :as assembling]))
+  (:require [pnp-proc.segmenting :as segmenting]
+            [pnp-proc.collecting :as collecting]))
 
 (defn- cards-from-page-set [[fronts-img backs-img]
                             offset-coords card-dimensions
@@ -19,16 +17,3 @@
                             offset-coords card-dimensions layout]
   (mapcat #(cards-from-page-set % offset-coords card-dimensions layout)
           page-sets))
-
-(defn- load-images [paths]
-  "Load images, pairing fronts and backs"
-  (partition 2 (map img/load-image paths)))
-
-(defn load-indexed-images [fmt number-of-images]
-  (let [paths (map #(format fmt %)
-                   (range number-of-images))]
-    (load-images paths)))
-
-(defn save-images [images fmt]
-  (doseq [i (range (count images))]
-    (img/save (nth images i) (format fmt i))))
