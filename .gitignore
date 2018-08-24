@@ -8,5 +8,8 @@ pom.xml.asc
 /.lein-*
 /.nrepl-port
 .hgignore
-.hg/
+.idea
+*.iml
 /img
+/dump-*
+/result
