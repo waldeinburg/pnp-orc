@@ -19,11 +19,15 @@
                (get-images-from-content-stream %)))
           (get-objects cs)))
 
-(defmacro with-open-doc [binding & body]
-  (let [name (first binding)
-        pdf (second binding)]
-    `(with-open [~name
-                 (pdfboxing.common/obtain-document ~pdf)]
+(defmacro with-open-doc [bindings & body]
+  "As with-open but with the symbols being bound to a pdf document"
+  (let [doc-bindings
+        (into []
+              (map-indexed #(if (odd? %1)
+                              `(pdfboxing.common/obtain-document ~%2)
+                              %2)
+                           bindings))]
+    `(with-open ~doc-bindings
        ~@body)))
 
 (defn get-images-from-pdf
