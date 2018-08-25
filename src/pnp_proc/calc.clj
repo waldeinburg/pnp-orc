@@ -3,7 +3,7 @@
 (defn upper-left-from-second [[second-offset-x second-offset-y]
                               [card-width card-height]]
   [(- second-offset-x card-width)
-   (- second-offset-x card-height)])
+   (- second-offset-y card-height)])
 
 ;; TODO: maybe we should get the PDRectangle of the original
 ;; PDPage instead of using the image as point of departure.

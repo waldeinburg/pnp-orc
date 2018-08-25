@@ -1,18 +1,20 @@
 (ns pnp-proc.tools
   "Functions for preparing recipies"
-  (:require [mikera.image.core :as img]
-            [pnp-proc.worker   :as worker]
-            [pnp-proc.pdf      :as pdf])
+  (:require [mikera.image.core  :as img]
+            [pnp-proc.file      :as file]
+            [pnp-proc.pdf       :as pdf])
   (:import org.apache.pdfbox.contentstream.operator.DrawObject
            [org.apache.pdfbox.contentstream.operator.state
             Concatenate Restore Save SetGraphicsStateParameters SetMatrix]
            org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
-           org.apache.pdfbox.rendering.PDFRenderer))
+           org.apache.pdfbox.rendering.PDFRenderer
+           org.apache.pdfbox.contentstream.PDFStreamEngine
+           (org.apache.pdfbox.pdmodel PDDocument)))
 
 (defn dump-images-from-pdf [pdf folder]
   "Dump all images from a PDF."
   (let [images (pdf/get-images-from-pdf pdf)]
-    (worker/save-images
+    (file/save-images
      images (str (clojure.java.io/file folder "img-%03d.png")))))
 
 (defn- get-bitmap-dpi [page image-idx]
@@ -22,11 +24,11 @@
   (let [cur-img-idx (atom -1)
         dpi (atom false)
         dpi-finder
-        (proxy [org.apache.pdfbox.contentstream.PDFStreamEngine] []
+        (proxy [PDFStreamEngine] []
           (processOperator [operator operands]
             (if (= "Do" (.getName operator))
-              (let [obj (-> (.getResources this)
-                            (.getXObject (first operands)))]
+              (let [^PDImageXObject obj (-> (.getResources this)
+                                            (.getXObject (first operands)))]
                 (if (instance? PDImageXObject obj)
                   (swap! cur-img-idx inc)
                   (let [matrix (-> this .getGraphicsState
@@ -54,11 +56,11 @@
   "Render a page to an image file.
    Useful for determining coordinates based on cut lines for PDF's
    containing several images per page."
-  ([pdf page-idx file]
-   (pdf/with-open-doc [doc pdf]
+  ([pdf page-idx image-idx file]
+   (pdf/with-open-doc [^PDDocument doc pdf]
      (let [renderer (PDFRenderer. doc)
            page (.getPage doc page-idx)
-           dpi (get-bitmap-dpi page)
+           dpi (get-bitmap-dpi page image-idx)
            image (.renderImageWithDPI renderer page-idx dpi)]
        (img/save image file)))))
 
