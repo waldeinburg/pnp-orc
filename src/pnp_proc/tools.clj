@@ -7,9 +7,10 @@
            [org.apache.pdfbox.contentstream.operator.state
             Concatenate Restore Save SetGraphicsStateParameters SetMatrix]
            org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
+           org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject
            org.apache.pdfbox.rendering.PDFRenderer
            org.apache.pdfbox.contentstream.PDFStreamEngine
-           (org.apache.pdfbox.pdmodel PDDocument)))
+           org.apache.pdfbox.pdmodel.PDDocument))
 
 (defn dump-images-from-pdf [pdf folder]
   "Dump all images from a PDF."
@@ -27,19 +28,24 @@
         (proxy [PDFStreamEngine] []
           (processOperator [operator operands]
             (if (= "Do" (.getName operator))
-              (let [^PDImageXObject obj (-> (.getResources this)
-                                            (.getXObject (first operands)))]
-                (if (instance? PDImageXObject obj)
-                  (swap! cur-img-idx inc)
-                  (let [matrix (-> this .getGraphicsState
-                                   .getCurrentTransformationMatrix)
-                        ;; The width in pixels divided by the width in inches
-                        ;; gives the DPI to render by to match the bitmap.
-                        ;; 72 DPI must be the default rendering for PDF's, it seems.
-                        new-dpi (/ (.getWidth obj)
-                                   (/ (.getScalingFactorX matrix) 72))]
-                    (if (= @cur-img-idx image-idx)
-                      (reset! dpi new-dpi)))))
+              (let [obj (-> (.getResources this)
+                            (.getXObject (first operands)))]
+                (cond
+                  (instance? PDImageXObject obj)
+                  (do
+                    (swap! cur-img-idx inc)
+                    (let [matrix (-> this .getGraphicsState
+                                     .getCurrentTransformationMatrix)
+                          ;; The width in pixels divided by the width in inches
+                          ;; gives the DPI to render by to match the bitmap.
+                          ;; 72 DPI must be the default rendering for PDF's, it seems.
+                          new-dpi (/ (.getWidth ^PDImageXObject obj)
+                                     (/ (.getScalingFactorX matrix) 72))]
+                      (if (= @cur-img-idx image-idx)
+                        (reset! dpi new-dpi))))
+                  ;; Images may be embedded in forms.
+                  (instance? PDFormXObject obj)
+                  (.showForm this obj)))
               (proxy-super processOperator operator operands))))]
     ;; Yes, they are all necessary (cf. constructor in PrintImageLocations).
     (.addOperator dpi-finder (Concatenate.))

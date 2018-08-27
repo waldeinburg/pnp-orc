@@ -8,7 +8,15 @@
 (defn- rotate-backs [backs]
   (map #(img/rotate % 180) backs))
 
-(defn collect-cards [fronts backs columns]
+(defn collect-cards
   "Assumption: paper is portrait and should be printed long edge"
-  (let [backs (-> backs rotate-backs (order-backs columns))]
-    (map vector fronts backs)))
+  ([fronts backs columns]
+   (let [backs (-> backs rotate-backs (order-backs columns))]
+     (map vector fronts backs)))
+  ([images [columns rows]]
+   (let [set-size (* rows columns)
+         sets (partition set-size images)
+         sets-count (count sets)
+         fronts (mapcat sets (range 0 sets-count 2))
+         backs (mapcat sets (range 1 sets-count 2))]
+     (collect-cards fronts backs columns))))
