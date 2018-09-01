@@ -13,27 +13,27 @@
 
 (defn absolute-offset-from-second-card [[second-offset-x second-offset-y]
                                         [card-width card-height]]
-  "Calculate offset of upper left card based on coordinates of second from top
+  "Calculate offset of top left card based on coordinates of second from top
    left card.
    This is easier to determine when there is excess pixels on the outer cards."
   [(- second-offset-x card-width)
    (- second-offset-y card-height)])
 
 (defn relative-offset-from-cut-lines [[image-offset-x image-offset-y]
-                                      [left-cut upper-cut]]
+                                      [left-cut top-cut]]
   "Calculate offset of actual card pixels relative to the image of the card
    based on offset and cut lines of an image containing the card.
    This is used based on result from tools/render-page-to-image
    when PDF's contains single images."
   [(- image-offset-x left-cut)
-   (- image-offset-y upper-cut)])
+   (- image-offset-y top-cut)])
 
-(defn card-dimensions-from-cut-lines [[left-cut upper-cut]
-                                      [right-cut lower-cut]]
+(defn card-dimensions-from-cut-lines [[left-cut top-cut]
+                                      [right-cut bottom-cut]]
   "Calculate actual card dimensions based on coordinates of cut lines.
    The cut lines are treated as inclusive."
   [(inc (- right-cut left-cut))
-   (inc (- lower-cut upper-cut))])
+   (inc (- bottom-cut top-cut))])
 
 
 ;;; Sequence utilities.

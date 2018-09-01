@@ -7,11 +7,11 @@
 (defn make [main-pdf cz-pdf poi-pdf w-pdf]
   ;; Coordinate data based on images from
   ;; (tools/render-page-to-image "SPRAWLOPOLIS-PNP.pdf" 1 0 "sprawlopolis.png")
-  (let [upper-left-cut [448 188]
-        card-dimensions (util/card-dimensions-from-cut-lines upper-left-cut
+  (let [top-left-cut [448 188]
+        card-dimensions (util/card-dimensions-from-cut-lines top-left-cut
                                                              [1195 1228])
         card-offset (util/relative-offset-from-cut-lines [414 151]
-                                                         upper-left-cut)
+                                                         top-left-cut)
         ;; The list will include the rules on page 1 (two impages.
         ;; Maybe we should handle the rules if we want to resize cards?
         main-images (pdf/get-images-from-pdf main-pdf)
