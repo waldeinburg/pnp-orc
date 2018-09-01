@@ -5,8 +5,9 @@
             [pnp-proc.util    :as util]))
 
 (defn make [pdf]
-  (let [card-dimensions [744 1040]
-        offset-coords (util/absolute-offset-from-second-card [903 1130] card-dimensions)
+  (let [second-card-offset [903 1130]
+        card-dimensions (util/card-dimensions-from-coords second-card-offset [1646 2169])
+        offset-coords (util/absolute-offset-from-second-card second-card-offset card-dimensions)
         images (pdf/get-images-from-pdf pdf)
         img-sets (partition 2 images)
         cards (worker/cards-from-image-sets img-sets

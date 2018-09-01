@@ -8,8 +8,8 @@
 (defn card-dimensions-from-coords [[left-x top-y]
                                    [right-x bottom-y]]
   "Calculate card dimensions from coordinates."
-  [(- right-x left-x)
-   (- bottom-y top-y)])
+  [(inc (- right-x left-x))
+   (inc (- bottom-y top-y))])
 
 (defn absolute-offset-from-second-card [[second-offset-x second-offset-y]
                                         [card-width card-height]]
@@ -30,9 +30,10 @@
 
 (defn card-dimensions-from-cut-lines [[left-cut upper-cut]
                                       [right-cut lower-cut]]
-  "Calculate actual card dimensions based on coordinates of cut lines."
-  [(- right-cut left-cut)
-   (- lower-cut upper-cut)])
+  "Calculate actual card dimensions based on coordinates of cut lines.
+   The cut lines are treated as inclusive."
+  [(inc (- right-cut left-cut))
+   (inc (- lower-cut upper-cut))])
 
 
 ;;; Sequence utilities.
