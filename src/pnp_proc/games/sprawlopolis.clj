@@ -1,10 +1,12 @@
 (ns pnp-proc.games.sprawlopolis
   "Recipe for Sprawolopolis, based on SPRAWLOPOLIS-PNP.pdf"
-  (:require [pnp-proc.pdf         :as pdf]
-            [pnp-proc.util        :as util]
-            [pnp-proc.collecting  :as collecting]))
+  (:require [pnp-proc.pdf :as pdf]
+            [pnp-proc.util :as util]
+            [pnp-proc.collecting :as collecting]
+            [pnp-proc.assembling :as assembling]
+            [pnp-proc.file :as file]))
 
-(defn make [main-pdf cz-pdf poi-pdf w-pdf]
+(defn make [output-folder main-pdf cz-pdf poi-pdf w-pdf]
   ;; Coordinate data based on images from
   ;; (tools/render-page-to-image "SPRAWLOPOLIS-PNP.pdf" 1 0 "sprawlopolis.png")
   (let [top-left-cut [448 188]
@@ -30,4 +32,7 @@
                          (drop 2)
                          ;; And change order.
                          (util/change-group-order [1 0 2 3 4 5]))
-        cards (collecting/collect-cards card-images [3 2])]))
+        cards (collecting/collect-cards card-images [3 2])
+        output-images (assembling/assemble-cards cards 4 [30 30] [30 30]
+                                                 card-dimensions card-offset)]
+    (file/save-images output-images (file/default-fmt output-folder))))

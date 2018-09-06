@@ -17,6 +17,7 @@
    (let [set-size (* rows columns)
          sets (partition set-size images)
          sets-count (count sets)
-         fronts (mapcat sets (range 0 sets-count 2))
-         backs (mapcat sets (range 1 sets-count 2))]
+         sets-i (partial nth sets)
+         fronts (mapcat sets-i (range 0 sets-count 2))
+         backs (mapcat sets-i (range 1 sets-count 2))]
      (collect-cards fronts backs columns))))

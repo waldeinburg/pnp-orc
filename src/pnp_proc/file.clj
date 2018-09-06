@@ -5,6 +5,9 @@
   "Load images, pairing fronts and backs"
   (partition 2 (map img/load-image paths)))
 
+(defn default-fmt [folder]
+  (str folder "/img-%03d.png"))
+
 (defn load-indexed-images [fmt number-of-images]
   (let [paths (map #(format fmt %)
                    (range number-of-images))]

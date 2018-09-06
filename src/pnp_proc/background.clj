@@ -36,15 +36,16 @@
                (inc fold-margin-y) (dec card-height)])) ; back
 
 (defn create-background [number-of-cards
-                         [margin-x margin-y]
+                         [cut-margin-x cut-margin-y]
                          [card-width card-height]
-                         [spacing-x fold-margin-y]]
-  (let [width (get-width number-of-cards margin-x card-width spacing-x)
-        height (get-height margin-y card-height fold-margin-y)
+                         [cut-spacing-x cut-fold-margin-y]]
+  (let [width (get-width number-of-cards cut-margin-x card-width cut-spacing-x)
+        height (get-height cut-margin-y card-height cut-fold-margin-y)
         max-x (dec width)
         max-y (dec height)
-        ver-lines (get-vertical-lines number-of-cards margin-x card-width spacing-x)
-        hor-lines (get-horizontal-lines margin-y card-height fold-margin-y)
+        ver-lines (get-vertical-lines number-of-cards
+                                      cut-margin-x card-width cut-spacing-x)
+        hor-lines (get-horizontal-lines cut-margin-y card-height cut-fold-margin-y)
         bg (create-white-image width height)
         gr (img/graphics bg)]
     (.setColor gr Color/black)

@@ -25,8 +25,8 @@
    based on offset and cut lines of an image containing the card.
    This is used based on result from tools/render-page-to-image
    when PDF's contains single images."
-  [(- image-offset-x left-cut)
-   (- image-offset-y top-cut)])
+  [(- left-cut image-offset-x)
+   (- top-cut image-offset-y)])
 
 (defn card-dimensions-from-cut-lines [[left-cut top-cut]
                                       [right-cut bottom-cut]]
