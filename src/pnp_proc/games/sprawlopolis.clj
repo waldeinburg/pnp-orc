@@ -22,6 +22,7 @@
         ;; The list will include the rules on page 1 (two impages.
         ;; Maybe we should handle the rules if we want to resize cards?
         main-images (pdf/get-images-from-pdf main-pdf)
+        cz-images (pdf/get-images-from-pdf cz-pdf)
         ;; The card images are weirdly but consistently arranged
         ;; with the first and second in the first row switching place.
         ;; But this means that when reversing the sets of backs to match
@@ -32,12 +33,22 @@
         ;; we get
         ;;  middle  left  right
         ;;  right   left  middle
-        card-images (->> main-images
-                         ;; Skip rules on page 1.
-                         (drop 2)
-                         ;; And change order.
-                         (util/change-group-order [1 0 2 3 4 5]))
-        cards (collecting/collect-cards card-images [3 2])
-        output-images (assembling/assemble-cards cards 4 [30 30] [30 30]
-                                                 card-dimensions card-offset)]
+        main-card-images (->> main-images
+                              ;; Skip rules on page 1.
+                              (drop 2)
+                              ;; And change order.
+                              (util/normalize-group-layout [1 0 2 3 4 5]))
+        ;; CZ has same order and two columns of uneven size (a gap in the lower.
+        cz-card-images (util/normalize-group-layout [1 0 2 3 nil 4] cz-images)
+        ;; Cards from the 3x2 files
+        card-images-main+cz (concat main-card-images cz-card-images)
+        cards-main+cz-all (collecting/collect-cards card-images-main+cz [3 2])
+        ;; The rule cards have a slightly smaller size.
+        cz-rule-card (last cards-main+cz-all)
+        cards-main+cz (drop-last cards-main+cz-all)
+        output-images-cards (assembling/assemble-cards cards-main+cz 4
+                                                       [30 30] [30 30]
+                                                       card-dimensions
+                                                       card-offset)
+        output-images (concat output-images-cards)]
     (pdf/images->pdf output-path output-images scale)))

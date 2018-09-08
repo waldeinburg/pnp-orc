@@ -38,15 +38,23 @@
 
 ;;; Sequence utilities.
 
-(defn change-group-order [order seq]
-  "Change the order of groups of elemens in a sequence based on a sequence of indices.
+(defn remove-nils [seq]
+  (filter (complement nil?) seq))
+
+(defn normalize-group-layout [order seq]
+  "Change the order of groups of elements in a sequence based on a sequence of indices.
    Useful for changing the order of images before using collect cards where the reversal
-   of the backs will result in wrong pairing of images if the PDF is weird."
+   of the backs will result in wrong pairing of images if the PDF is weird.
+   An index kan be nil to mark a gap in the layout which should be filled with nil to
+   create the correct pairing in collecting/collect-cards."
   (->> seq
        ;; Divide into groups
-       (partition (count order))
+       (partition (count (remove-nils order)))
        ;; Switch order in each group.
-       (map #(map (fn [i] (nth % i))
+       (map #(map (fn [i]
+                    (if (nil? i)
+                      nil
+                      (nth % i)))
                   order))
        ;; And put back together.
        (apply concat)))
