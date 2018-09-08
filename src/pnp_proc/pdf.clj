@@ -1,8 +1,12 @@
 (ns pnp-proc.pdf
   (:require pdfboxing.common)
-  (:import org.apache.pdfbox.pdmodel.PDDocument
-           org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject
-           org.apache.pdfbox.contentstream.PDContentStream))
+  (:import (org.apache.pdfbox.pdmodel.graphics.image LosslessFactory
+                                                     PDImageXObject)
+           (org.apache.pdfbox.contentstream PDContentStream)
+           (org.apache.pdfbox.pdmodel PDDocument
+                                      PDPage
+                                      PDPageContentStream)
+           (org.apache.pdfbox.pdmodel.common PDRectangle)))
 
 (defn- get-objects [^PDContentStream cs]
   "Take an object that can return a PDResources object
@@ -30,6 +34,19 @@
     `(with-open ~doc-bindings
        ~@body)))
 
+(defmacro with-make-pdf [bindings & body]
+  "As with-open-doc but with binding being to paths to be saved"
+  (let [bind-pairs (partition 2 bindings)
+        doc-bindings (into []
+                           (mapcat #(list (first %) '(PDDocument.))
+                                   bind-pairs))
+        saves (map (fn [b]
+                     `(.save ^PDDocument ~(first b) ^String ~(second b)))
+                   bind-pairs)]
+    `(with-open ~doc-bindings
+       ~@body
+       ~@saves)))
+
 (defn get-images-from-pdf
   "Get images from pdf.
    Optionally specify a sequence of page indexes.
@@ -37,7 +54,7 @@
   ([pdf]
    (get-images-from-pdf pdf []))
   ([pdf page-idxs]
-   (with-open-doc [doc pdf]
+   (with-open-doc [^PDDocument doc pdf]
      (let [all-pages (.getPages doc)
            pages (if (empty? page-idxs)
                    all-pages
@@ -45,3 +62,26 @@
        (doall ; Or else the document might be closed when reading an image.
         (mapcat get-images-from-content-stream
                 pages))))))
+
+(defn add-image-as-page! [^PDDocument doc image scale]
+  (let [^PDImageXObject pd-img (LosslessFactory/createFromImage doc image)
+        ^float img-width (* (.getWidth pd-img) scale)
+        ^float img-height (* (.getHeight pd-img) scale)
+        rect (PDRectangle. img-width img-height)
+        page (PDPage. rect)
+        x (float 0)
+        y (float 0)]
+    (.addPage doc page)
+    (with-open [^PDPageContentStream content (PDPageContentStream. doc page)]
+      (.drawImage content pd-img
+                  x y
+                  img-width img-height))))
+
+(defn add-images-as-pages! [doc images scale]
+  (doseq [img images]
+    (add-image-as-page! doc img scale)))
+
+(defn images->pdf
+  ([path images scale]
+   (with-make-pdf [doc path]
+     (add-images-as-pages! doc images scale))))

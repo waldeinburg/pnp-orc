@@ -1,15 +1,20 @@
 (ns pnp-proc.games.sprawlopolis
   "Recipe for Sprawolopolis, based on SPRAWLOPOLIS-PNP.pdf"
   (:require [pnp-proc.pdf :as pdf]
+            [pnp-proc.tools :as tools]
             [pnp-proc.util :as util]
             [pnp-proc.collecting :as collecting]
             [pnp-proc.assembling :as assembling]
             [pnp-proc.file :as file]))
 
-(defn make [output-folder main-pdf cz-pdf poi-pdf w-pdf]
+(defn make [output-path main-pdf cz-pdf poi-pdf w-pdf]
   ;; Coordinate data based on images from
-  ;; (tools/render-page-to-image "SPRAWLOPOLIS-PNP.pdf" 1 0 "sprawlopolis.png")
-  (let [top-left-cut [448 188]
+  ;; (tools/render-page-to-image "SPRAWLOPOLIS-PNP.pdf" 1 1 "sprawlopolis.png")
+  ;; First page (page 0) is the rules.
+  ;; Image 0 is scale 197.28, the others are 197.28041. In practice they are
+  ;; equal though.
+  (let [scale (tools/get-bitmap-scale main-pdf 1 1)
+        top-left-cut [448 188]
         card-dimensions (util/card-dimensions-from-cut-lines top-left-cut
                                                              [1195 1228])
         card-offset (util/relative-offset-from-cut-lines [414 151]
@@ -35,4 +40,4 @@
         cards (collecting/collect-cards card-images [3 2])
         output-images (assembling/assemble-cards cards 4 [30 30] [30 30]
                                                  card-dimensions card-offset)]
-    (file/save-images output-images (file/default-fmt output-folder))))
+    (pdf/images->pdf output-path output-images scale)))

@@ -68,12 +68,12 @@
      (.processPage attr-finder page)
      @value)))
 
-(defn- dpi-fn [^PDImageXObject obj ^Matrix matrix]
+(defn- dpi-fn [^PDImageXObject img ^Matrix matrix]
   "Helper for get-bitmap-dpi."
   ;; The width in pixels divided by the width in inches
   ;; gives the DPI to render by to match the bitmap.
   ;; 72 DPI must be the default rendering for PDF's, it seems.
-  (/ (.getWidth obj)
+  (/ (.getWidth img)
      (/ (.getScalingFactorX matrix) 72)))
 
 (defn- get-bitmap-dpi
@@ -86,15 +86,14 @@
   ([pdf page-idx image-idx]
    (get-bitmap-attribute pdf page-idx image-idx dpi-fn)))
 
-(defn get-bitmap-scaling-factor [pdf page-idx image-idx]
+(defn get-bitmap-scale [pdf page-idx image-idx]
   "Find the scale of an image on a page.
    Used for producing the resulting PDF."
   (get-bitmap-attribute pdf page-idx image-idx
-                        ;; The width in pixels divided by the width in inches
-                        ;; gives the DPI to render by to match the bitmap.
-                        ;; 72 DPI must be the default rendering for PDF's, it seems.
-                        (fn [_ ^Matrix matrix]
-                          (.getScalingFactorX matrix))))
+                        (fn [^PDImageXObject img ^Matrix matrix]
+                          ;; The scaling factor is the size in points.
+                          (/ (.getScalingFactorX matrix)
+                             (.getWidth img)))))
 
 
 (defn render-page-to-image
@@ -105,7 +104,7 @@
    (pdf/with-open-doc [^PDDocument doc pdf]
      (let [renderer (PDFRenderer. doc)
            page (.getPage doc page-idx)
-           dpi (get-bitmap-attribute page image-idx)
+           dpi (get-bitmap-dpi page image-idx)
            image (.renderImageWithDPI renderer page-idx dpi)]
        (img/save image file)))))
 
