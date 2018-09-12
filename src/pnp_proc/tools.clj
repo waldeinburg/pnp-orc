@@ -74,7 +74,9 @@
   ;; gives the DPI to render by to match the bitmap.
   ;; 72 DPI must be the default rendering for PDF's, it seems.
   (/ (.getWidth img)
-     (/ (.getScalingFactorX matrix) 72)))
+     ;; Scaling factor is negative if the image is rotated.
+     (/ (Math/abs (.getScalingFactorX matrix))
+        72)))
 
 (defn- get-bitmap-dpi
   "Find the correct DPI for dumping a page as image so that bitmaps
@@ -92,7 +94,8 @@
   (get-bitmap-attribute pdf page-idx image-idx
                         (fn [^PDImageXObject img ^Matrix matrix]
                           ;; The scaling factor is the size in points.
-                          (/ (.getScalingFactorX matrix)
+                          ;; Scaling factor is negative if the image is rotated.
+                          (/ (Math/abs (.getScalingFactorX matrix))
                              (.getWidth img)))))
 
 
