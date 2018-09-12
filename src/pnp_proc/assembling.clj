@@ -28,8 +28,8 @@
     spacings
     card-dimensions
     card-offset]
-    (assemble-cards (card/add-card-info cards card-offset)
-                    cards-per-page margins spacings card-dimensions))
+   (assemble-cards (card/add-card-info cards card-offset)
+                   cards-per-page margins spacings card-dimensions))
   ([cards
     cards-per-page
     [margin-x margin-y]
@@ -63,35 +63,43 @@
                                             [card-width card-height]
                                             [cut-spacing-x cut-fold-margin-y])
            new-bg #(img/copy bg)]
-       (loop [images [(new-bg)]
+       (loop [cur-img (new-bg)
+              images []
               rest-cards cards
               card-i 0]
-         (if (empty? rest-cards)
-           images
-           (let [^Graphics2D grph (img/graphics (last images))
-                 card (first rest-cards)
-                 front (first card)
-                 back (second card)
-                 front-y-fn (fn [offset-y]
-                              (- cut-margin-y offset-y))
-                 back-y-fn (fn [offset-y]
-                             (- (+ cut-margin-y
-                                   card-height
-                                   (* 2 cut-fold-margin-y)
-                                   1)
-                                offset-y))
-                 draw (fn [src y-fn]
-                        (let [offset (:offset src)
-                              x (+ (- cut-margin-x (first offset))
-                                   (* card-i (+ card-width cut-spacing-x)))
-                              y (y-fn (second offset))]
-                          ;; The type hints are for overload disambiguation.
-                          (.drawImage grph ^Image (:img src)
-                                      ^Integer x ^Integer y nil)))]
-             (draw front front-y-fn)
-             (draw back back-y-fn)
-             (let [new-rest-cards (rest rest-cards)
-                   new-card-i (inc card-i)]
+         ;; Add card to current image.
+         (let [^Graphics2D grph (img/graphics cur-img)
+               card (first rest-cards)
+               front (first card)
+               back (second card)
+               front-y-fn (fn [offset-y]
+                            (- cut-margin-y offset-y))
+               back-y-fn (fn [offset-y]
+                           (- (+ cut-margin-y
+                                 card-height
+                                 (* 2 cut-fold-margin-y)
+                                 1)
+                              offset-y))
+               draw (fn [src y-fn]
+                      (let [offset (:offset src)
+                            x (+ (- cut-margin-x (first offset))
+                                 (* card-i (+ card-width cut-spacing-x)))
+                            y (y-fn (second offset))]
+                        ;; The type hints are for overload disambiguation.
+                        (.drawImage grph ^Image (:img src)
+                                    ^Integer x ^Integer y nil)))]
+           (draw front front-y-fn)
+           (draw back back-y-fn)
+           (let [new-rest-cards (rest rest-cards)
+                 new-card-i (inc card-i)]
+             ;; It's important to make the done check here. If we do it at the
+             ;; beginning of the loop and the final card fills the page we
+             ;; would add a blank page. Empty card argument is checked before
+             ;; the loop.
+             (if (empty? new-rest-cards)
+               ;; Done. Add final image and return.
+               (conj images cur-img)
+               ;; Continue with new or same page.
                (if (= new-card-i cards-per-page)
-                 (recur (conj images (new-bg)) new-rest-cards 0)
-                 (recur images new-rest-cards new-card-i))))))))))
+                 (recur (new-bg) (conj images cur-img) new-rest-cards 0)
+                 (recur cur-img images new-rest-cards new-card-i))))))))))
