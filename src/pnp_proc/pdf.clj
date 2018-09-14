@@ -81,6 +81,13 @@
   (doseq [img images]
     (add-image-as-page! doc img scale)))
 
+(defn add-page-from! [^PDDocument dest-doc
+                      ^PDDocument src-doc
+                      page-idx]
+  "Copy a page from one document to another.
+   The the destination document must be closed before the source."
+  (.addPage dest-doc (.getPage src-doc page-idx)))
+
 (defn images->pdf
   ([path images scale]
    (with-make-pdf [doc path]

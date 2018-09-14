@@ -10,8 +10,7 @@
             [pnp-proc.util :as util]
             [pnp-proc.card :as card]
             [pnp-proc.collecting :as collecting]
-            [pnp-proc.assembling :as assembling]
-            [pnp-proc.file :as file]))
+            [pnp-proc.assembling :as assembling]))
 
 (defn make [output-path main-pdf cz-pdf poi-pdf w-pdf]
   ;; Coordinate data based on images from
@@ -89,34 +88,10 @@
         cards (concat norm-cards exp-rule-cards)
         output-images-cards (assembling/assemble-cards cards 4
                                                        [30 30] [30 30]
-                                                       card-dimensions)
-        ;; Now we're at it, include the rules in the PDF.
-        ;; This one is actually tricky: The images are off by one pixel to
-        ;; line up the images.
-        ;; There's 1 px excess material at the top of the image and no
-        ;; horizontal excess material based on cut lines; actually they are
-        ;; off a little, including blank space to the left.
-        ;; The "page" size is 750 (3000/4) x 1050 pixels, which is
-        ;; slightly larger (card size 748x1041). The front page is actually
-        ;; 755 pixels. The scale is slightly smaller, though (0.24000 vs.
-        ;; 0.24177).
-        ;; By using the same resolution we would get rules which are
-        ;; 8 * 0.24177 / 72 * 25.4 = 0.7 mm too high. And the "correct"
-        ;; scale will ensure that the 755 px front page is the correct size.
-        ;; The order of front/back is still reversed.
-        ;; The lower image is rotated so we can treat it as if on a new page.
-        ;; There's only two images, but we are still dealing with lists.
-        rules-scale (tools/get-bitmap-scale main-pdf 0 1)
-        rules-images (reverse (take 2 main-images))
-        rules-cards (collecting/collect-cards rules-images [1 1])
-        rules-sample (first rules-images)
-        rules-dimensions [(img/width rules-sample)
-                          (dec (img/height rules-sample))]
-        rules-offset [0 1]
-        output-images-rules (assembling/assemble-cards rules-cards 1
-                                                       [30 30] [30 30]
-                                                       rules-dimensions
-                                                       rules-offset)]
-    (pdf/with-make-pdf [doc output-path]
-      (pdf/add-images-as-pages! doc output-images-rules rules-scale)
-      (pdf/add-images-as-pages! doc output-images-cards scale))))
+                                                       card-dimensions)]
+    ;; The source must not be closed before the destination when copying.
+    (pdf/with-open-doc [org-doc main-pdf]
+      (pdf/with-make-pdf [doc output-path]
+        ;; Copy the rule page directly from the source.
+        (pdf/add-page-from! doc org-doc 0)
+        (pdf/add-images-as-pages! doc output-images-cards scale)))))
