@@ -23,9 +23,11 @@
         top-left-cut [448 188]
         ;; POI and W are slightly smaller (cut lines [422 177] [1126 1157] =
         ;; size 705x981 contra main size 748x1041) but the images are the
-        ;; same size as main. Treat this as an error and get the same cart size.
-        ;; The error are probably due to the rule cards being the first image
-        ;; giving very little excess material (image size 750x1110).
+        ;; same size as main. But the scale is 0.25646 vs. 0.24177 which
+        ;; gives about the same points.
+        ;; But there's enough graphics to just use the same resolution.
+        ;; Actually, I feel they cut off more than needed.
+        ;; TODO: Create an option or new recipe that is more true to the PDF.
         card-dimensions (util/card-dimensions-from-cut-lines top-left-cut
                                                              [1195 1228])
         card-offset (util/relative-offset-from-cut-lines [414 151]
@@ -88,14 +90,33 @@
         output-images-cards (assembling/assemble-cards cards 4
                                                        [30 30] [30 30]
                                                        card-dimensions)
-        ;; Now we're at it, include the rules in the PDF. Actually, the
-        ;; images are off by one pixel, so our result is theoretically
-        ;; better :-) There's no excess material. The order is still reversed.
+        ;; Now we're at it, include the rules in the PDF.
+        ;; This one is actually tricky: The images are off by one pixel to
+        ;; line up the images.
+        ;; There's 1 px excess material at the top of the image and no
+        ;; horizontal excess material based on cut lines; actually they are
+        ;; off a little, including blank space to the left.
+        ;; The "page" size is 750 (3000/4) x 1050 pixels, which is
+        ;; slightly larger (card size 748x1041). The front page is actually
+        ;; 755 pixels. The scale is slightly smaller, though (0.24000 vs.
+        ;; 0.24177).
+        ;; By using the same resolution we would get rules which are
+        ;; 8 * 0.24177 / 72 * 25.4 = 0.7 mm too high. And the "correct"
+        ;; scale will ensure that the 755 px front page is the correct size.
+        ;; The order of front/back is still reversed.
         ;; The lower image is rotated so we can treat it as if on a new page.
         ;; There's only two images, but we are still dealing with lists.
+        rules-scale (tools/get-bitmap-scale main-pdf 0 1)
         rules-images (reverse (take 2 main-images))
-        rule-cards (collecting/collect-cards rules-images [1 1])
-        output-images-rules (assembling/assemble-cards rule-cards 1
-                                                       [30 30] [30 30])
-        output-images (concat output-images-rules output-images-cards)]
-    (pdf/images->pdf output-path output-images scale)))
+        rules-cards (collecting/collect-cards rules-images [1 1])
+        rules-sample (first rules-images)
+        rules-dimensions [(img/width rules-sample)
+                          (dec (img/height rules-sample))]
+        rules-offset [0 1]
+        output-images-rules (assembling/assemble-cards rules-cards 1
+                                                       [30 30] [30 30]
+                                                       rules-dimensions
+                                                       rules-offset)]
+    (pdf/with-make-pdf [doc output-path]
+      (pdf/add-images-as-pages! doc output-images-rules rules-scale)
+      (pdf/add-images-as-pages! doc output-images-cards scale))))
