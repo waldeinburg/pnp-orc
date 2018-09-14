@@ -11,5 +11,5 @@ pom.xml.asc
 .idea
 *.iml
 /img
-/dump-*
+/dump*
 /result
