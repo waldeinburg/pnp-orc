@@ -1,14 +1,12 @@
 (ns pnp-proc.games.palm-island
   "Recipe for Palm Island, based on Palm-Island-Print-and-Play1.4.6.pdf"
   (:require [pnp-proc.pdf :as pdf]
-            [pnp-proc.tools :as tools]
             [pnp-proc.worker :as worker]
             [pnp-proc.assembling :as assembling]
-            [pnp-proc.util :as util]
-            [pnp-proc.file :as file]))
+            [pnp-proc.util :as util]))
 
 (defn make [output-path pdf]
-  (let [scale (tools/get-bitmap-scale pdf 0 0)
+  (let [scale (pdf/get-bitmap-scale pdf 0 0)
         second-card-offset [903 1130]
         card-dimensions (util/card-dimensions-from-coords second-card-offset [1646 2169])
         offset-coords (util/absolute-offset-from-second-card second-card-offset card-dimensions)

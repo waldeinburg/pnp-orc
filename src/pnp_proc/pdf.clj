@@ -1,12 +1,24 @@
 (ns pnp-proc.pdf
-  (:require pdfboxing.common)
+  (:require pdfboxing.common
+            pdfboxing.info)
   (:import (org.apache.pdfbox.pdmodel.graphics.image LosslessFactory
                                                      PDImageXObject)
-           (org.apache.pdfbox.contentstream PDContentStream)
+           (org.apache.pdfbox.pdmodel.graphics.form PDFormXObject)
+           (org.apache.pdfbox.contentstream PDContentStream
+                                            PDFStreamEngine)
+           (org.apache.pdfbox.contentstream.operator DrawObject)
+           (org.apache.pdfbox.contentstream.operator.state Concatenate
+                                                           Restore
+                                                           Save
+                                                           SetGraphicsStateParameters
+                                                           SetMatrix)
            (org.apache.pdfbox.pdmodel PDDocument
                                       PDPage
-                                      PDPageContentStream)
-           (org.apache.pdfbox.pdmodel.common PDRectangle)))
+                                      PDPageContentStream
+                                      PDResources)
+           (org.apache.pdfbox.pdmodel.common PDRectangle)
+           (org.apache.pdfbox.rendering PDFRenderer)
+           (org.apache.pdfbox.util Matrix)))
 
 (defn- get-objects [^PDContentStream cs]
   "Take an object that can return a PDResources object
@@ -60,8 +72,8 @@
                    all-pages
                    (map (partial nth all-pages) page-idxs))]
        (doall ; Or else the document might be closed when reading an image.
-        (mapcat get-images-from-content-stream
-                pages))))))
+         (mapcat get-images-from-content-stream
+                 pages))))))
 
 (defn add-image-as-page! [^PDDocument doc image scale]
   (let [^PDImageXObject pd-img (LosslessFactory/createFromImage doc image)
@@ -92,3 +104,88 @@
   ([path images scale]
    (with-make-pdf [doc path]
      (add-images-as-pages! doc images scale))))
+
+;;; The method to get DPI can also be used to find the correct scale
+;;; and is therefore generalized.
+(defn- get-bitmap-attribute
+  "Find an attribute for an image on a page that is only accessible during
+   rendering.
+   The function f should have the signature:
+     [^PDImageXObject obj ^Matrix matrix].
+   Based on org.apache.pdfbox.examples.util.PrintImageLocations."
+  ([pdf page-idx image-idx f]
+   (with-open-doc [doc pdf]
+     (let [page (.getPage doc page-idx)]
+       (get-bitmap-attribute page image-idx f))))
+  ([page image-idx f]
+   (let [cur-img-idx (atom -1)
+         value (atom false)
+         attr-finder
+         (proxy [PDFStreamEngine] []
+           (processOperator [operator operands]
+             (if (= "Do" (.getName operator))
+               (let [obj (-> ^PDResources (.getResources this)
+                             (.getXObject (first operands)))]
+                 (cond
+                   (instance? PDImageXObject obj)
+                   (do
+                     (swap! cur-img-idx inc)
+                     (let [matrix (-> this .getGraphicsState
+                                      .getCurrentTransformationMatrix)
+                           new-v (f obj matrix)]
+                       (if (= @cur-img-idx image-idx)
+                         (reset! value new-v))))
+                   ;; Images may be embedded in forms.
+                   (instance? PDFormXObject obj)
+                   (.showForm this obj)))
+               (proxy-super processOperator operator operands))))]
+     ;; Yes, they are all necessary (cf. constructor in PrintImageLocations).
+     (.addOperator attr-finder (Concatenate.))
+     (.addOperator attr-finder (DrawObject.))
+     (.addOperator attr-finder (SetGraphicsStateParameters.))
+     (.addOperator attr-finder (Save.))
+     (.addOperator attr-finder (Restore.))
+     (.addOperator attr-finder (SetMatrix.))
+     ;; Get the value.
+     (.processPage attr-finder page)
+     @value)))
+
+(defn- dpi-fn [^PDImageXObject img ^Matrix matrix]
+  "Helper for get-bitmap-dpi."
+  ;; The width in pixels divided by the width in inches
+  ;; gives the DPI to render by to match the bitmap.
+  ;; 72 DPI must be the default rendering for PDF's, it seems.
+  (/ (.getWidth img)
+     ;; Scaling factor is negative if the image is rotated.
+     (/ (Math/abs (.getScalingFactorX matrix))
+        72)))
+
+(defn get-bitmap-dpi [pdf page-idx image-idx]
+  "Find the correct DPI for dumping a page as image so that bitmaps
+   come out with their original dimensions.
+   Based on org.apache.pdfbox.examples.util.PrintImageLocations."
+  (get-bitmap-attribute pdf page-idx image-idx dpi-fn))
+
+(defn get-bitmap-scale [pdf page-idx image-idx]
+  "Find the scale of an image on a page.
+   Used for producing the resulting PDF."
+  (get-bitmap-attribute pdf page-idx image-idx
+                        (fn [^PDImageXObject img ^Matrix matrix]
+                          ;; The scaling factor is the size in points.
+                          ;; Scaling factor is negative if the image is rotated.
+                          (/ (Math/abs (.getScalingFactorX matrix))
+                             (.getWidth img)))))
+
+(defn render-pages-to-images [pdf dpi & page-idxs]
+  (with-open-doc [^PDDocument doc pdf]
+    (let [renderer (PDFRenderer. doc)]
+      ;; Not lazy (doall) because doc will close.
+      (doall
+        (map #(.renderImageWithDPI renderer % dpi)
+             (if (empty? page-idxs)
+               (range (pdfboxing.info/page-number doc))
+               page-idxs))))))
+
+(defn render-page-to-image
+  ([pdf dpi page-idx]
+   (first (render-pages-to-images pdf dpi page-idx))))

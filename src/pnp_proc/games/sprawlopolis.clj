@@ -6,7 +6,6 @@
    SPRAWLOPOLIS-W-PNP.pdf"
   (:require [mikera.image.core :as img]
             [pnp-proc.pdf :as pdf]
-            [pnp-proc.tools :as tools]
             [pnp-proc.util :as util]
             [pnp-proc.card :as card]
             [pnp-proc.collecting :as collecting]
@@ -18,7 +17,7 @@
   ;; First page (page 0) is the rules.
   ;; Image 0 is scale 197.28, the others are 197.28041. In practice they are
   ;; equal though.
-  (let [scale (tools/get-bitmap-scale main-pdf 1 1)
+  (let [scale (pdf/get-bitmap-scale main-pdf 1 1)
         top-left-cut [448 188]
         ;; POI and W are slightly smaller (cut lines [422 177] [1126 1157] =
         ;; size 705x981 contra main size 748x1041) but the images are the
