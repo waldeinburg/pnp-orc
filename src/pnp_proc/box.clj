@@ -4,14 +4,15 @@
             [mikera.image.core :as img]
             [pnp-proc.pdf :as pdf])
   (:import (org.apache.pdfbox.pdmodel.common PDRectangle)
-           (org.apache.pdfbox.pdmodel PDDocument PDPage PDPageContentStream)))
+           (org.apache.pdfbox.pdmodel PDDocument PDPage PDPageContentStream)
+           (org.apache.pdfbox.pdmodel.graphics.image LosslessFactory PDImageXObject)))
 
 ;; Points per mm is the PPI resolutions divided by the conversion constant.
 (def points-per-mm (/ 72 25.4))
 ;; http://spencermortensen.com/articles/bezier-circle/
 (def circle-k 0.551915024494)
 
-(defn- mm->points [mm]
+(defn- ^Float mm->points [mm]
   (* mm points-per-mm))
 
 (defn- rel-mm->abs-points [start points]
@@ -61,18 +62,31 @@
     (doseq [l pairs]
       (stroke-rel-path content (first l) (second l)))))
 
-(defn- load-image-with-ratio-check [path w-h-ratio ratio-warning-threshold]
-  (let [img (img/load-image path)
-        w (img/width img)
-        h (img/height img)
-        img-ratio (/ w h)
-        ratio-diff (- img-ratio w-h-ratio)]
-    (if (< ratio-warning-threshold ratio-diff)
-      (log/warn path "had width/height ratio that was" ratio-diff "off."
-                "Change image width to" (math/round (* h w-h-ratio))
-                "or image height to" (math/round (/ w w-h-ratio))
-                "to get closer to a ratio of" w-h-ratio))
-    img))
+(defn- ^PDImageXObject load-image-with-ratio-check [^PDDocument doc
+                                                    ratio-warning-threshold
+                                                    path
+                                                    w-h-ratio]
+  (when path
+    (let [img (img/load-image path)
+          img-obj (LosslessFactory/createFromImage doc img)
+          w (img/width img)
+          h (img/height img)
+          img-ratio (/ w h)
+          ratio-diff (- img-ratio w-h-ratio)]
+      (if (< ratio-warning-threshold ratio-diff)
+        (log/warn path "had width/height ratio that was" ratio-diff "off."
+                  "Change image width to" (math/round (* h w-h-ratio))
+                  "or image height to" (math/round (/ w w-h-ratio))
+                  "to get closer to a ratio of" w-h-ratio))
+      img-obj)))
+
+(defn- draw-image-if-not-nil [^PDPageContentStream content
+                              ^PDImageXObject img
+                              [x y] [w h]]
+  (when img
+    (.drawImage content img
+                (mm->points x) (mm->points y)
+                (mm->points w) (mm->points h))))
 
 (defn make-card-box-pdf
   ([path width height depth]
@@ -121,14 +135,10 @@
    (let [width-height-ratio (/ width height)
          depth-height-ratio (/ depth height)
          width-depth-ratio (/ width depth)
-         load-img #(if %1
-                     (load-image-with-ratio-check %1 %2 ratio-warning-threshold))
-         front-img (load-img front-img-path width-height-ratio)
-         back-img (load-img back-img-path width-height-ratio)
-         left-img (load-img left-img-path depth-height-ratio)
-         right-img (load-img right-img-path depth-height-ratio)
-         top-img (load-img top-img-path width-depth-ratio)
-         bottom-img (load-img bottom-img-path width-depth-ratio)
+         width-height-dim [width height]
+         depth-height-dim [depth height]
+         width-depth-dim [width depth]
+         margin+depth (+ margin depth)
          -width (- width)
          -depth (- depth)
          -glue-side-slope (- glue-side-slope)
@@ -166,82 +176,109 @@
                             (mm->points height-total))
          page (PDPage. rect)]
      (pdf/with-make-pdf [^PDDocument doc path]
-       (.addPage doc page)
+       (.addPage doc page) height
        (with-open [^PDPageContentStream content (PDPageContentStream. doc page)]
-         (.setStrokingColor content 0 0 0)
-         (.setLineWidth content (mm->points line-width))
-         (stroke-rel-path content [margin (+ margin depth)]
-                          ;; left side
-                          [0 height]
-                          ;; top left flap
-                          [top-flap-slope-close-side top-flaps-size]
-                          [top-flaps-edge-size 0]
-                          [top-flap-slope-fold-side (- top-flaps-size)]
-                          ;; top
-                          [0 depth]
-                          [0 close-flap-straight-size]
-                          [:curve
-                           [0 close-flap-curve-size]
-                           [width close-flap-curve-size]
-                           [width 0]]
-                          [0 (- close-flap-straight-size)]
-                          [0 (- depth)]
-                          ;; top right flap
-                          [top-flap-slope-fold-side top-flaps-size]
-                          [top-flaps-edge-size 0]
-                          [top-flap-slope-close-side (- top-flaps-size)]
-                          ;; close edge - circles are one arc at a time.
-                          [close-edge-part-size 0]
-                          [:curve
-                           [0 (- close-hole-vert-k)]
-                           [(- close-hole-half-width close-hole-horiz-k)
-                            (- close-hole-height)]
-                           [close-hole-half-width (- close-hole-height)]]
-                          [:curve
-                           [close-hole-horiz-k 0]
-                           [close-hole-half-width
-                            (- close-hole-height close-hole-vert-k)]
-                           [close-hole-half-width close-hole-height]]
-                          [close-edge-part-size 0]
-                          ;; glue side
-                          [glue-side-size -glue-side-slope]
-                          [0 (- (* 2 glue-side-slope) height)]
-                          [-glue-side-size -glue-side-slope]
-                          ;; bottom
-                          [0 -depth]
-                          [-width 0]
-                          [0 depth]
-                          ;; right glue flap
-                          [-glue-flaps-slope -glue-flaps-size]
-                          [-glue-flaps-edge-size 0]
-                          [-glue-flaps-slope glue-flaps-size]
-                          ;; glue bottom
-                          [-glue-bottom-slope -glue-bottom-size]
-                          [-glue-bottom-edge-size 0]
-                          [-glue-bottom-slope glue-bottom-size]
-                          ;; left glue flap
-                          [-glue-flaps-slope -glue-flaps-size]
-                          [-glue-flaps-edge-size 0]
-                          [-glue-flaps-slope glue-flaps-size])
-         ;; Dotted lines.
-         (.setLineDashPattern content (float-array [0.7 10.0]) (float 1.0))
-         (stroke-lines
-           content
-           ;; top
-           [margin (+ margin depth)] [(* 2 (+ depth width)) 0]
-           ;; bottom
-           [margin (+ margin depth height)] [(+ width (* 2 depth)) 0]
-           ;; lid
-           [(+ margin depth) (+ margin height (* 2 depth))] [width 0]
-           ;; vertical lines from left to right
-           [(+ margin depth) (+ margin depth)] [0 height]
-           [(+ margin depth width) (+ margin depth)] [0 height]
-           [(+ margin width (* 2 depth)) (+ margin depth)] [0 height]
-           [(+ margin (* 2 width) (* 2 depth)) (+ margin depth)] [0 height]))))))
+         (let [load-img (partial load-image-with-ratio-check doc
+                                 ratio-warning-threshold)
+               draw-img (partial draw-image-if-not-nil content)
+               front-img (load-img front-img-path width-height-ratio)
+               back-img (load-img back-img-path width-height-ratio)
+               left-img (load-img left-img-path depth-height-ratio)
+               right-img (load-img right-img-path depth-height-ratio)
+               top-img (load-img top-img-path width-depth-ratio)
+               bottom-img (load-img bottom-img-path width-depth-ratio)]
+           (draw-img front-img
+                     [margin+depth margin+depth]
+                     width-height-dim)
+           (draw-img back-img
+                     [(+ margin width (* 2 depth)) margin+depth]
+                     width-height-dim)
+           (draw-img left-img
+                     [margin margin+depth]
+                     depth-height-dim)
+           (draw-img right-img
+                     [(+ margin+depth width) margin+depth]
+                     depth-height-dim)
+           (draw-img top-img
+                     [margin+depth (+ margin+depth height)]
+                     width-depth-dim)
+           (draw-img bottom-img
+                     [(+ margin width (* 2 depth)) margin]
+                     width-depth-dim)
+           (.setStrokingColor content 0 0 0)
+           (.setLineWidth content (mm->points line-width))
+           (stroke-rel-path content [margin margin+depth]
+                            ;; left side
+                            [0 height]
+                            ;; top left flap
+                            [top-flap-slope-close-side top-flaps-size]
+                            [top-flaps-edge-size 0]
+                            [top-flap-slope-fold-side (- top-flaps-size)]
+                            ;; top
+                            [0 depth]
+                            [0 close-flap-straight-size]
+                            [:curve
+                             [0 close-flap-curve-size]
+                             [width close-flap-curve-size]
+                             [width 0]]
+                            [0 (- close-flap-straight-size)]
+                            [0 (- depth)]
+                            ;; top right flap
+                            [top-flap-slope-fold-side top-flaps-size]
+                            [top-flaps-edge-size 0]
+                            [top-flap-slope-close-side (- top-flaps-size)]
+                            ;; close edge - circles are one arc at a time.
+                            [close-edge-part-size 0]
+                            [:curve
+                             [0 (- close-hole-vert-k)]
+                             [(- close-hole-half-width close-hole-horiz-k)
+                              (- close-hole-height)]
+                             [close-hole-half-width (- close-hole-height)]]
+                            [:curve
+                             [close-hole-horiz-k 0]
+                             [close-hole-half-width
+                              (- close-hole-height close-hole-vert-k)]
+                             [close-hole-half-width close-hole-height]]
+                            [close-edge-part-size 0]
+                            ;; glue side
+                            [glue-side-size -glue-side-slope]
+                            [0 (- (* 2 glue-side-slope) height)]
+                            [-glue-side-size -glue-side-slope]
+                            ;; bottom
+                            [0 -depth]
+                            [-width 0]
+                            [0 depth]
+                            ;; right glue flap
+                            [-glue-flaps-slope -glue-flaps-size]
+                            [-glue-flaps-edge-size 0]
+                            [-glue-flaps-slope glue-flaps-size]
+                            ;; glue bottom
+                            [-glue-bottom-slope -glue-bottom-size]
+                            [-glue-bottom-edge-size 0]
+                            [-glue-bottom-slope glue-bottom-size]
+                            ;; left glue flap
+                            [-glue-flaps-slope -glue-flaps-size]
+                            [-glue-flaps-edge-size 0]
+                            [-glue-flaps-slope glue-flaps-size])
+           ;; Dotted lines.
+           (.setLineDashPattern content (float-array [0.7 10.0]) (float 1.0))
+           (stroke-lines
+             content
+             ;; top
+             [margin margin+depth] [(* 2 (+ depth width)) 0]
+             ;; bottom
+             [margin (+ margin depth height)] [(+ width (* 2 depth)) 0]
+             ;; lid
+             [margin+depth (+ margin height (* 2 depth))] [width 0]
+             ;; vertical lines from left to right
+             [margin+depth margin+depth] [0 height]
+             [(+ margin depth width) margin+depth] [0 height]
+             [(+ margin width (* 2 depth)) margin+depth] [0 height]
+             [(+ margin (* 2 width) (* 2 depth)) margin+depth] [0 height])))))))
 
 (defn make-poker-card-box-pdf
   "Make box for poker size cards (63.5mm x 88.9mm)"
   ([path depth]
-    (make-poker-card-box-pdf path depth {}))
+   (make-poker-card-box-pdf path depth {}))
   ([path depth options]
-    (make-card-box-pdf path 64.5 89.9 depth options)))
+   (make-card-box-pdf path 64.5 89.9 depth options)))
