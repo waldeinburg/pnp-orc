@@ -42,6 +42,7 @@
 
 (defn- stroke-rel-path [^PDPageContentStream content
                         [start-x start-y] & points]
+  "Given and absolute start and relative points, stroke path"
   (let [start-x-p (mm->points start-x)
         start-y-p (mm->points start-y)
         abs-points (rel-mm->abs-points [start-x-p start-y-p] points)]
@@ -53,6 +54,12 @@
           (case (first p)
             :curve (do (.curveTo content x1 y1 x2 y2 x3 y3)))))))
   (.stroke content))
+
+(defn- stroke-lines [^PDPageContentStream content & lines]
+  "Given pairs of absolute offset and relative end, stroke lines"
+  (let [pairs (partition 2 lines)]
+    (doseq [l pairs]
+      (stroke-rel-path content (first l) (second l)))))
 
 (defn- load-image-with-ratio-check [path w-h-ratio ratio-warning-threshold]
   (let [img (img/load-image path)
@@ -218,31 +225,19 @@
                           [-glue-flaps-slope glue-flaps-size])
          ;; Dotted lines.
          (.setLineDashPattern content (float-array [0.7 10.0]) (float 1.0))
-         ;; top
-         (stroke-rel-path content
-                          [margin (+ margin depth)]
-                          [(* 2 (+ depth width)) 0])
-         ;; bottom
-         (stroke-rel-path content
-                          [margin (+ margin depth height)]
-                          [(+ width (* 2 depth)) 0])
-         ;; lid
-         (stroke-rel-path content
-                          [(+ margin depth) (+ margin height (* 2 depth))]
-                          [width 0])
-         ;; vertical lines from left to right
-         (stroke-rel-path content
-                          [(+ margin depth) (+ margin depth)]
-                          [0 height])
-         (stroke-rel-path content
-                          [(+ margin depth width) (+ margin depth)]
-                          [0 height])
-         (stroke-rel-path content
-                          [(+ margin width (* 2 depth)) (+ margin depth)]
-                          [0 height])
-         (stroke-rel-path content
-                          [(+ margin (* 2 width) (* 2 depth)) (+ margin depth)]
-                          [0 height]))))))
+         (stroke-lines
+           content
+           ;; top
+           [margin (+ margin depth)] [(* 2 (+ depth width)) 0]
+           ;; bottom
+           [margin (+ margin depth height)] [(+ width (* 2 depth)) 0]
+           ;; lid
+           [(+ margin depth) (+ margin height (* 2 depth))] [width 0]
+           ;; vertical lines from left to right
+           [(+ margin depth) (+ margin depth)] [0 height]
+           [(+ margin depth width) (+ margin depth)] [0 height]
+           [(+ margin width (* 2 depth)) (+ margin depth)] [0 height]
+           [(+ margin (* 2 width) (* 2 depth)) (+ margin depth)] [0 height]))))))
 
 (defn make-poker-card-box-pdf
   "Make box for poker size cards (63.5mm x 88.9mm)"
