@@ -5,7 +5,9 @@
             [pnp-proc.pdf :as pdf])
   (:import (org.apache.pdfbox.pdmodel.common PDRectangle)
            (org.apache.pdfbox.pdmodel PDDocument PDPage PDPageContentStream)
-           (org.apache.pdfbox.pdmodel.graphics.image LosslessFactory PDImageXObject)))
+           (org.apache.pdfbox.pdmodel.graphics.image LosslessFactory PDImageXObject)
+           (org.apache.pdfbox.util Matrix)
+           (java.awt.geom AffineTransform)))
 
 ;; Points per mm is the PPI resolutions divided by the conversion constant.
 (def points-per-mm (/ 72 25.4))
@@ -82,11 +84,24 @@
 
 (defn- draw-image-if-not-nil [^PDPageContentStream content
                               ^PDImageXObject img
-                              [x y] [w h]]
+                              [x y] [w h]
+                              orientation]
   (when img
-    (.drawImage content img
-                (mm->points x) (mm->points y)
-                (mm->points w) (mm->points h))))
+    (let [wp (mm->points w)
+          hp (mm->points h)
+          [tx ty] (case orientation
+                    :up [0 0]
+                    :left [w 0]
+                    :right [0 h]
+                    :down [w h])
+          q (case orientation :up 0, :left 1, :down 2, :right 3)
+          xp (mm->points (+ x tx))
+          yp (mm->points (+ y ty))
+          ^AffineTransform transform (AffineTransform.)]
+      (.translate transform xp yp)
+      (.scale transform wp hp)
+      (.quadrantRotate transform q)
+      (.drawImage content img (Matrix. transform)))))
 
 (defn make-card-box-pdf
   ([path width height depth]
@@ -96,9 +111,14 @@
     {:keys [front-img-path back-img-path
             left-img-path right-img-path
             top-img-path bottom-img-path
+            front-img-orient back-img-orient
+            left-img-orient right-img-orient
+            top-img-orient bottom-img-orient
             ratio-warning-threshold
             margin
             close-flap-straight-size-factor close-flap-curve-size-factor
+            close-flap-ends-k-factor
+            close-flap-middle-k-factor
             top-flaps-size-factor
             glue-bottom-gap glue-bottom-slope
             glue-flaps-size-factor glue-flaps-slope
@@ -110,10 +130,18 @@
             close-hole-ends-k-factor                        ; circle-k for circle
             close-hole-middle-k-factor                      ; circle-k for circle
             line-width]
-     :or   {ratio-warning-threshold         0.005
+     :or   {front-img-orient                :up
+            back-img-orient                 :up
+            left-img-orient                 :right
+            right-img-orient                :left
+            top-img-orient                  :up
+            bottom-img-orient               :up
+            ratio-warning-threshold         0.005
             margin                          10
-            close-flap-straight-size-factor 0.7
-            close-flap-curve-size-factor    1.2
+            close-flap-straight-size-factor 0.5
+            close-flap-curve-size-factor    1.0
+            close-flap-ends-k-factor        circle-k
+            close-flap-middle-k-factor      circle-k
             top-flaps-size-factor           0.9
             glue-bottom-gap                 2
             glue-bottom-slope               1
@@ -125,8 +153,8 @@
             top-flap-slope-close-side       3
             close-hole-width                15
             close-hole-height               5
-            close-hole-ends-k-factor        circle-k
-            close-hole-middle-k-factor      0.1
+            close-hole-ends-k-factor        0.1
+            close-hole-middle-k-factor      circle-k
             line-width                      0.2}}]
    "Create PDF with box for cards.
     All measures are in millimeters.
@@ -144,8 +172,11 @@
          -glue-side-slope (- glue-side-slope)
          -glue-flaps-slope (- glue-flaps-slope)
          -glue-bottom-slope (- glue-bottom-slope)
+         half-width (/ width 2)
          close-flap-straight-size (* depth close-flap-straight-size-factor)
          close-flap-curve-size (* depth close-flap-curve-size-factor)
+         close-flap-horiz-k (* close-flap-middle-k-factor half-width)
+         close-flap-vert-k (* close-flap-ends-k-factor close-flap-curve-size)
          glue-bottom-size (- depth glue-bottom-gap)
          -glue-bottom-size (- glue-bottom-size)
          glue-bottom-edge-size (- width (* 2 glue-bottom-slope))
@@ -160,8 +191,8 @@
                                 top-flap-slope-close-side)
          close-edge-part-size (/ (- width close-hole-width) 2)
          close-hole-half-width (/ close-hole-width 2)
-         close-hole-horiz-k (* close-hole-ends-k-factor close-hole-half-width)
-         close-hole-vert-k (* close-hole-middle-k-factor close-hole-height)
+         close-hole-horiz-k (* close-hole-middle-k-factor close-hole-half-width)
+         close-hole-vert-k (* close-hole-ends-k-factor close-hole-height)
          glue-side-size (- depth glue-side-gap)
          -glue-side-size (- glue-side-size)
          width-total (+ (* 2 margin)
@@ -189,22 +220,28 @@
                bottom-img (load-img bottom-img-path width-depth-ratio)]
            (draw-img front-img
                      [margin+depth margin+depth]
-                     width-height-dim)
+                     width-height-dim
+                     front-img-orient)
            (draw-img back-img
                      [(+ margin width (* 2 depth)) margin+depth]
-                     width-height-dim)
+                     width-height-dim
+                     back-img-orient)
            (draw-img left-img
                      [margin margin+depth]
-                     depth-height-dim)
+                     depth-height-dim
+                     left-img-orient)
            (draw-img right-img
                      [(+ margin+depth width) margin+depth]
-                     depth-height-dim)
+                     depth-height-dim
+                     right-img-orient)
            (draw-img top-img
                      [margin+depth (+ margin+depth height)]
-                     width-depth-dim)
+                     width-depth-dim
+                     top-img-orient)
            (draw-img bottom-img
-                     [(+ margin width (* 2 depth)) margin]
-                     width-depth-dim)
+                     [margin+depth margin]
+                     width-depth-dim
+                     bottom-img-orient)
            (.setStrokingColor content 0 0 0)
            (.setLineWidth content (mm->points line-width))
            (stroke-rel-path content [margin margin+depth]
@@ -218,9 +255,15 @@
                             [0 depth]
                             [0 close-flap-straight-size]
                             [:curve
-                             [0 close-flap-curve-size]
-                             [width close-flap-curve-size]
-                             [width 0]]
+                             [0 close-flap-vert-k]
+                             [(- half-width close-flap-horiz-k)
+                              close-flap-curve-size]
+                             [half-width close-flap-curve-size]]
+                            [:curve
+                             [close-flap-horiz-k 0]
+                             [half-width
+                              (- close-flap-vert-k close-flap-curve-size)]
+                             [half-width (- close-flap-curve-size)]]
                             [0 (- close-flap-straight-size)]
                             [0 (- depth)]
                             ;; top right flap
@@ -244,18 +287,18 @@
                             [glue-side-size -glue-side-slope]
                             [0 (- (* 2 glue-side-slope) height)]
                             [-glue-side-size -glue-side-slope]
-                            ;; bottom
-                            [0 -depth]
-                            [-width 0]
-                            [0 depth]
-                            ;; right glue flap
-                            [-glue-flaps-slope -glue-flaps-size]
-                            [-glue-flaps-edge-size 0]
-                            [-glue-flaps-slope glue-flaps-size]
                             ;; glue bottom
                             [-glue-bottom-slope -glue-bottom-size]
                             [-glue-bottom-edge-size 0]
                             [-glue-bottom-slope glue-bottom-size]
+                            ;; right glue flap
+                            [-glue-flaps-slope -glue-flaps-size]
+                            [-glue-flaps-edge-size 0]
+                            [-glue-flaps-slope glue-flaps-size]
+                            ;; bottom
+                            [0 -depth]
+                            [-width 0]
+                            [0 depth]
                             ;; left glue flap
                             [-glue-flaps-slope -glue-flaps-size]
                             [-glue-flaps-edge-size 0]
