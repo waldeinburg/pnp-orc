@@ -7,7 +7,8 @@
            (org.apache.pdfbox.pdmodel PDDocument PDPage PDPageContentStream)
            (org.apache.pdfbox.pdmodel.graphics.image LosslessFactory PDImageXObject)
            (org.apache.pdfbox.util Matrix)
-           (java.awt.geom AffineTransform)))
+           (java.awt.geom AffineTransform)
+           (java.awt Color)))
 
 ;; Points per mm is the PPI resolutions divided by the conversion constant.
 (def points-per-mm (/ 72 25.4))
@@ -43,9 +44,9 @@
                   (first abs-ps))]
         (recur next-offset (rest rest-points) (conj! result abs))))))
 
-(defn- stroke-rel-path [^PDPageContentStream content
-                        [start-x start-y] & points]
-  "Given and absolute start and relative points, stroke path"
+(defn- draw-rel-path [^PDPageContentStream content
+                    [start-x start-y] & points]
+  "Given and absolute start and relative points, draw path"
   (let [start-x-p (mm->points start-x)
         start-y-p (mm->points start-y)
         abs-points (rel-mm->abs-points [start-x-p start-y-p] points)]
@@ -55,8 +56,19 @@
         (.lineTo content (first p) (second p))
         (let [[[x1 y1] [x2 y2] [x3 y3]] (rest p)]
           (case (first p)
-            :curve (do (.curveTo content x1 y1 x2 y2 x3 y3)))))))
+            :curve (do (.curveTo content x1 y1 x2 y2 x3 y3))))))))
+
+(defn- stroke-rel-path [^PDPageContentStream content
+                        start & points]
+  "Given and absolute start and relative points, stroke path"
+  (apply draw-rel-path content start points)
   (.stroke content))
+
+(defn- fill-rel-path [^PDPageContentStream content
+                      start & points]
+  "Given and absolute start and relative points, stroke path"
+  (apply draw-rel-path content start points)
+  (.fill content))
 
 (defn- stroke-lines [^PDPageContentStream content & lines]
   "Given pairs of absolute offset and relative end, stroke lines"
@@ -67,6 +79,7 @@
 (defn- ^PDImageXObject load-image-with-ratio-check [^PDDocument doc
                                                     ratio-warning-threshold
                                                     path
+                                                    rotation
                                                     w-h-ratio]
   (when path
     (let [img (img/load-image path)
@@ -74,12 +87,15 @@
           w (img/width img)
           h (img/height img)
           img-ratio (/ w h)
-          ratio-diff (- img-ratio w-h-ratio)]
+          w-h-ratio-with-rot (if (or (= rotation :up) (= rotation :down))
+                               w-h-ratio
+                               (/ 1 w-h-ratio))
+          ratio-diff (math/abs (- img-ratio w-h-ratio-with-rot))]
       (if (< ratio-warning-threshold ratio-diff)
         (log/warn path "had width/height ratio that was" ratio-diff "off."
-                  "Change image width to" (math/round (* h w-h-ratio))
-                  "or image height to" (math/round (/ w w-h-ratio))
-                  "to get closer to a ratio of" w-h-ratio))
+                  "Change image width to" (math/round (* h w-h-ratio-with-rot))
+                  "or image height to" (math/round (/ w w-h-ratio-with-rot))
+                  "to get closer to a ratio of" w-h-ratio-with-rot))
       img-obj)))
 
 (defn- draw-image-if-not-nil [^PDPageContentStream content
@@ -136,7 +152,7 @@
             right-img-orient                :left
             top-img-orient                  :up
             bottom-img-orient               :up
-            ratio-warning-threshold         0.005
+            ratio-warning-threshold         0.01
             margin                          10
             close-flap-straight-size-factor 0.5
             close-flap-curve-size-factor    1.0
@@ -155,7 +171,7 @@
             close-hole-height               5
             close-hole-ends-k-factor        0.1
             close-hole-middle-k-factor      circle-k
-            line-width                      0.2}}]
+            line-width                      0.01}}]
    "Create PDF with box for cards.
     All measures are in millimeters.
     An image may be a path or a vector with path and rotation:
@@ -193,6 +209,16 @@
          close-hole-half-width (/ close-hole-width 2)
          close-hole-horiz-k (* close-hole-middle-k-factor close-hole-half-width)
          close-hole-vert-k (* close-hole-ends-k-factor close-hole-height)
+         close-hole-1 [:curve
+                       [0 (- close-hole-vert-k)]
+                       [(- close-hole-half-width close-hole-horiz-k)
+                        (- close-hole-height)]
+                       [close-hole-half-width (- close-hole-height)]]
+         close-hole-2 [:curve
+                       [close-hole-horiz-k 0]
+                       [close-hole-half-width
+                        (- close-hole-height close-hole-vert-k)]
+                       [close-hole-half-width close-hole-height]]
          glue-side-size (- depth glue-side-gap)
          -glue-side-size (- glue-side-size)
          width-total (+ (* 2 margin)
@@ -212,12 +238,18 @@
          (let [load-img (partial load-image-with-ratio-check doc
                                  ratio-warning-threshold)
                draw-img (partial draw-image-if-not-nil content)
-               front-img (load-img front-img-path width-height-ratio)
-               back-img (load-img back-img-path width-height-ratio)
-               left-img (load-img left-img-path depth-height-ratio)
-               right-img (load-img right-img-path depth-height-ratio)
-               top-img (load-img top-img-path width-depth-ratio)
-               bottom-img (load-img bottom-img-path width-depth-ratio)]
+               front-img (load-img front-img-path front-img-orient
+                                   width-height-ratio)
+               back-img (load-img back-img-path back-img-orient
+                                  width-height-ratio)
+               left-img (load-img left-img-path left-img-orient
+                                  depth-height-ratio)
+               right-img (load-img right-img-path right-img-orient
+                                   depth-height-ratio)
+               top-img (load-img top-img-path top-img-orient
+                                 width-depth-ratio)
+               bottom-img (load-img bottom-img-path bottom-img-orient
+                                    width-depth-ratio)]
            (draw-img front-img
                      [margin+depth margin+depth]
                      width-height-dim
@@ -242,7 +274,12 @@
                      [margin+depth margin]
                      width-depth-dim
                      bottom-img-orient)
-           (.setStrokingColor content 0 0 0)
+           (.setNonStrokingColor content Color/white)
+           (fill-rel-path content
+                          [(+ margin width (* 2 depth) close-edge-part-size)
+                           (+ margin+depth height)]
+                          close-hole-1 close-hole-2)
+           (.setStrokingColor content Color/black)
            (.setLineWidth content (mm->points line-width))
            (stroke-rel-path content [margin margin+depth]
                             ;; left side
@@ -272,16 +309,8 @@
                             [top-flap-slope-close-side (- top-flaps-size)]
                             ;; close edge - circles are one arc at a time.
                             [close-edge-part-size 0]
-                            [:curve
-                             [0 (- close-hole-vert-k)]
-                             [(- close-hole-half-width close-hole-horiz-k)
-                              (- close-hole-height)]
-                             [close-hole-half-width (- close-hole-height)]]
-                            [:curve
-                             [close-hole-horiz-k 0]
-                             [close-hole-half-width
-                              (- close-hole-height close-hole-vert-k)]
-                             [close-hole-half-width close-hole-height]]
+                            close-hole-1
+                            close-hole-2
                             [close-edge-part-size 0]
                             ;; glue side
                             [glue-side-size -glue-side-slope]
