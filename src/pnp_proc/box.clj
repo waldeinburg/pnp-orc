@@ -349,8 +349,14 @@
              [(+ margin (* 2 width) (* 2 depth)) margin+depth] [0 height])))))))
 
 (defn make-poker-card-box-pdf
-  "Make box for poker size cards (63.5mm x 88.9mm)"
+  "Make box for poker size cards (2.5 x 3.5 in / 63.5 x 88.9 mm)"
   ([path depth]
-   (make-poker-card-box-pdf path depth {}))
+   (make-poker-card-box-pdf path depth 0 0 {}))
   ([path depth options]
-   (make-card-box-pdf path 64.5 89.9 depth options)))
+   (make-poker-card-box-pdf path depth 0 0 options))
+  ([path depth width-add height-add]
+    (make-poker-card-box-pdf path depth width-add height-add {}))
+  ([path depth width-add height-add options]
+   (let [width (+ 63.5 width-add)
+         height (+ 88.9 height-add)]
+     (make-card-box-pdf path width height depth options))))
