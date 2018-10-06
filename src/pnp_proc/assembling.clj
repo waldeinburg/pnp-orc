@@ -42,22 +42,22 @@
                                         (map #(first (:offset %)) cards-flat))
            max-card-rel-offset-y (apply max
                                         (map #(second (:offset %)) cards-flat))
-           max-right-excess (apply max (map #(- (img/width (:img %))
-                                                card-width
-                                                (first (:offset %)))
+           max-right-bleed (apply max (map #(- (img/width (:img %))
+                                               card-width
+                                               (first (:offset %)))
+                                           cards-flat))
+           max-bottom-bleed (apply max (map #(- (img/height (:img %))
+                                                card-height
+                                                (second (:offset %)))
                                             cards-flat))
-           max-bottom-excess (apply max (map #(- (img/height (:img %))
-                                                 card-height
-                                                 (second (:offset %)))
-                                             cards-flat))
            ;; The margin to the cut lines should be enough to ensure the
-           ;; wanted margin on the side with the largest excess, no less.
+           ;; wanted margin on the side with the largest bleed, no less.
            ;; Normally the card will be centered on the image, so we don't
            ;; make things more complicated by differing between sides.
-           cut-margin-x (+ margin-x (max max-card-rel-offset-x max-right-excess))
-           cut-margin-y (+ margin-y (max max-card-rel-offset-y max-bottom-excess))
-           cut-spacing-x (+ spacing-x max-card-rel-offset-x max-right-excess)
-           cut-fold-margin-y (+ fold-margin-y max-bottom-excess)
+           cut-margin-x (+ margin-x (max max-card-rel-offset-x max-right-bleed))
+           cut-margin-y (+ margin-y (max max-card-rel-offset-y max-bottom-bleed))
+           cut-spacing-x (+ spacing-x max-card-rel-offset-x max-right-bleed)
+           cut-fold-margin-y (+ fold-margin-y max-bottom-bleed)
            bg (background/create-background cards-per-page
                                             [cut-margin-x cut-margin-y]
                                             [card-width card-height]

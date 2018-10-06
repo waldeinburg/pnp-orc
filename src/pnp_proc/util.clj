@@ -15,7 +15,7 @@
                                         [card-width card-height]]
   "Calculate offset of top left card based on coordinates of second from top
    left card.
-   This is easier to determine when there is excess pixels on the outer cards."
+   This is easier to determine when there is bleed pixels on the outer cards."
   [(- second-offset-x card-width)
    (- second-offset-y card-height)])
 
