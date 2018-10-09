@@ -37,7 +37,7 @@
         card-images (concat main-card-images mb-card-images)
         cards (collecting/collect-cards card-images [3 2])
         output-images-cards (assembling/assemble-cards cards 4
-                                                       [30 30] [30 30]
+                                                       [30 30] [0 30]
                                                        card-dimensions
                                                        card-offset)
         ;; The MB rules is just one card.
@@ -51,7 +51,7 @@
                                          mb-rc-width)
                                       2))
         output-image-mb-rule-card (assembling/assemble-cards mb-rule-card 1
-                                                             [30 30] [30 30]
+                                                             [30 30] [0 30]
                                                              [mb-rc-width
                                                               mb-rc-height]
                                                              [mb-rc-offset-x 0])]

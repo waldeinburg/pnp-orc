@@ -9,7 +9,8 @@
             [pnp-proc.util :as util]
             [pnp-proc.card :as card]
             [pnp-proc.collecting :as collecting]
-            [pnp-proc.assembling :as assembling]))
+            [pnp-proc.assembling :as assembling])
+  (:import (org.apache.pdfbox.pdmodel PDDocument)))
 
 (defn make [output-path main-pdf cz-pdf poi-pdf w-pdf]
   ;; Coordinate data based on images from
@@ -86,11 +87,11 @@
                                        card-offset)
         cards (concat norm-cards exp-rule-cards)
         output-images-cards (assembling/assemble-cards cards 4
-                                                       [30 30] [30 30]
+                                                       [30 30] [0 30]
                                                        card-dimensions)]
     ;; The source must not be closed before the destination when copying.
-    (pdf/with-open-doc [org-doc main-pdf]
-      (pdf/with-make-pdf [doc output-path]
+    (pdf/with-open-doc [^PDDocument org-doc main-pdf]
+      (pdf/with-make-pdf [^PDDocument doc output-path]
         ;; Copy the rule page directly from the source.
         (pdf/add-page-from! doc org-doc 0)
         (pdf/add-images-as-pages! doc output-images-cards scale)))))

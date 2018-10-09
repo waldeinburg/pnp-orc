@@ -50,19 +50,25 @@
    (if (empty? cards)
      []
      (let [cards (crop-backs cards card-dimensions)
-           cards-flat (apply concat cards)
-           max-card-rel-offset-x (apply max
-                                        (map #(first (:offset %)) cards-flat))
-           max-card-rel-offset-y (apply max
-                                        (map #(second (:offset %)) cards-flat))
-           max-right-bleed (apply max (map #(- (img/width (:img %))
-                                               card-width
-                                               (first (:offset %)))
-                                           cards-flat))
-           max-bottom-bleed (apply max (map #(- (img/height (:img %))
-                                                card-height
-                                                (second (:offset %)))
-                                            cards-flat))
+           ;; Use fronts to determine spacing. Ignore backs (cropped).
+           fronts (map first cards)
+           ;; The following four is calculations of how much will be outside
+           ;; cut line. We thus subtract 1 but ensure that offset 0 is not
+           ;; negative; a bleed of 1 is a bleed of 0 because of the cut line.
+           max-card-rel-offset-x (apply max 0
+                                        (map #(dec (first (:offset %))) fronts))
+           max-card-rel-offset-y (apply max 0
+                                        (map #(dec (second (:offset %))) fronts))
+           max-right-bleed (apply max 0 (map #(- (img/width (:img %))
+                                                 card-width
+                                                 (first (:offset %))
+                                                 1)
+                                             fronts))
+           max-bottom-bleed (apply max 0 (map #(- (img/height (:img %))
+                                                  card-height
+                                                  (second (:offset %))
+                                                  1)
+                                              fronts))
            ;; The margin to the cut lines should be enough to ensure the
            ;; wanted margin on the side with the largest bleed, no less.
            ;; Normally the card will be centered on the image, so we don't
