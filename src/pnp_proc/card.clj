@@ -1,4 +1,5 @@
-(ns pnp-proc.card)
+(ns pnp-proc.card
+  (:require [mikera.image.core :as img]))
 
 ;; CardImage holds an image and offset information.
 ;; The assemble function must assume equal size of all cards to create cut
@@ -11,3 +12,9 @@
   (map (fn [images]
          (map #(CardImage. % offset) images))
        cards))
+
+(defn crop [card dimensions]
+  "Crop a CardImage and return a new CardImage with offset 0 0"
+  (CardImage. (apply img/sub-image (:img card)
+                     (concat (:offset card) dimensions))
+              [0 0]))

@@ -4,6 +4,18 @@
             [pnp-proc.card :as card])
   (:import (java.awt Graphics2D Image)))
 
+(defn- crop-backs [cards card-dimensions]
+  "Crop fronts so that cut lines are not overwritten.
+   If there's bleed on the images it gets really hard to cut one of the
+   directions correctly after the first one have been cut because there's no
+   longer any way to tell where exactly the bleed stops. It's better then to
+   just not have bleed on one side and cut on that side. We use the backs
+   because that is the side that we want to be most accurate (avoid differences)
+   and we can have bleed on the front, then."
+  (map (fn [[front back]]
+         [front (card/crop back card-dimensions)])
+       cards))
+
 (defn assemble-cards
   "Take pairs of front and back and properties for creating a background
    and placing the card images.
@@ -34,10 +46,11 @@
     cards-per-page
     [margin-x margin-y]
     [spacing-x fold-margin-y]
-    [card-width card-height]]
+    [card-width card-height :as card-dimensions]]
    (if (empty? cards)
      []
-     (let [cards-flat (apply concat cards)
+     (let [cards (crop-backs cards card-dimensions)
+           cards-flat (apply concat cards)
            max-card-rel-offset-x (apply max
                                         (map #(first (:offset %)) cards-flat))
            max-card-rel-offset-y (apply max
