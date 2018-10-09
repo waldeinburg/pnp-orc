@@ -4,6 +4,9 @@
 ;;; They ensure that recipes can be made by quickly reading coordinates in an
 ;;; image editor without any change of messing up the math for some reason.
 ;;; For all of us who are idiots and not afraid of admitting it!
+;;; The cut line functions assumes that the cut line is cut away and the
+;;; coordinates and dimensions should be the resulting image not including the
+;;; cut lines.
 
 (defn card-dimensions-from-coords [[left-x top-y]
                                    [right-x bottom-y]]
@@ -24,16 +27,17 @@
   "Calculate offset of actual card pixels relative to the image of the card
    based on offset and cut lines of an image containing the card.
    This is used based on result from tools/render-page-to-image
-   when PDF's contains single images."
-  [(- left-cut image-offset-x)
-   (- top-cut image-offset-y)])
+   when PDF's contains single images.
+   The cut lines are treated as exclusive."
+  [(inc (- left-cut image-offset-x))
+   (inc (- top-cut image-offset-y))])
 
 (defn card-dimensions-from-cut-lines [[left-cut top-cut]
                                       [right-cut bottom-cut]]
   "Calculate actual card dimensions based on coordinates of cut lines.
-   The cut lines are treated as inclusive."
-  [(inc (- right-cut left-cut))
-   (inc (- bottom-cut top-cut))])
+   The cut lines are treated as exclusive."
+  [(dec (- right-cut left-cut))
+   (dec (- bottom-cut top-cut))])
 
 
 ;;; Sequence utilities.

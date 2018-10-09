@@ -2,6 +2,11 @@
   (:require [mikera.image.core :as img])
   (:import java.awt.Color))
 
+;;; Functions for drawing the background with the cut lines.
+;;; The cut lines are meant to be cut away, i.e., one can place the ruler so
+;;; that the cut lines is just visible. The card image is thus supposed to be
+;;; surrounded by lines
+
 (defn- create-white-image [width height]
   ;; Create background without alpha channels.
   ;; At the time of writing mikera/imagez only allows loading images
@@ -12,28 +17,30 @@
 (defn- get-width [number-of-cards
                   margin-x card-width spacing-x]
   (+ (* 2 margin-x)
-     (* number-of-cards card-width)
+     ;; 2 for the cut lines
+     (* number-of-cards (+ 2 card-width))
      (* (dec number-of-cards) spacing-x)))
 
 (defn- get-height [margin-y card-height fold-margin-y]
-  ;; 1 pixel for the fold line
-  (inc (* 2 (+ margin-y
-               card-height
-               fold-margin-y))))
+  ;; 1 pixel for the fold line and 4 for the cut lines
+  (+ 4
+     (* 2 (+ margin-y
+             card-height
+             fold-margin-y))))
 
 (defn- get-vertical-lines [number-of-cards
                            margin-x card-width spacing-x]
   (mapcat #(let [left-edge (+ margin-x
-                              (* % (+ card-width spacing-x)))]
+                              (* % (+ 2 card-width spacing-x)))]
              [left-edge
-              (dec (+ left-edge card-width))])
+              (+ 1 left-edge card-width)])
           (range number-of-cards)))
 
 (defn- get-horizontal-lines [margin-y card-height fold-margin-y]
   (reductions +
-              [margin-y (dec card-height)               ; front
+              [margin-y (inc card-height)               ; front
                (inc fold-margin-y)                      ; fold line
-               (inc fold-margin-y) (dec card-height)])) ; back
+               (inc fold-margin-y) (inc card-height)])) ; back
 
 (defn create-background [number-of-cards
                          [cut-margin-x cut-margin-y]

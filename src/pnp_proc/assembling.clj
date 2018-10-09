@@ -73,17 +73,18 @@
                front (first card)
                back (second card)
                front-y-fn (fn [offset-y]
-                            (- cut-margin-y offset-y))
+                            (inc (- cut-margin-y offset-y)))
                back-y-fn (fn [offset-y]
-                           (- (+ cut-margin-y
+                           (- (+ 4                          ; lines
+                                 cut-margin-y
                                  card-height
-                                 (* 2 cut-fold-margin-y)
-                                 1)
+                                 (* 2 cut-fold-margin-y))
                               offset-y))
                draw (fn [src y-fn]
                       (let [offset (:offset src)
-                            x (+ (- cut-margin-x (first offset))
-                                 (* card-i (+ card-width cut-spacing-x)))
+                            x (+ 1
+                                 (- cut-margin-x (first offset))
+                                 (* card-i (+ 2 card-width cut-spacing-x)))
                             y (y-fn (second offset))]
                         ;; The type hints are for overload disambiguation.
                         (.drawImage grph ^Image (:img src)
