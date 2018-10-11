@@ -1,4 +1,4 @@
-(ns pnp-proc.segmenting
+(ns pnp-orc.segmenting
   (:require [mikera.image.core :as img]))
 
 (defn- get-cards-coordinates [[offset-x offset-y]

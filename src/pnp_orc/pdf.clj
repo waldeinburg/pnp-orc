@@ -1,4 +1,4 @@
-(ns pnp-proc.pdf
+(ns pnp-orc.pdf
   (:require pdfboxing.common
             pdfboxing.info)
   (:import (org.apache.pdfbox.pdmodel.graphics.image LosslessFactory

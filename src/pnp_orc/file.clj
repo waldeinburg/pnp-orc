@@ -1,4 +1,4 @@
-(ns pnp-proc.file
+(ns pnp-orc.file
   (:require [mikera.image.core :as img]))
 
 (defn- load-images [paths]

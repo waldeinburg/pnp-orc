@@ -1,4 +1,4 @@
-(ns pnp-proc.background
+(ns pnp-orc.background
   (:require [mikera.image.core :as img])
   (:import java.awt.Color))
 

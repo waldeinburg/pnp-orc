@@ -1,7 +1,7 @@
-(ns pnp-proc.assembling
+(ns pnp-orc.assembling
   (:require [mikera.image.core :as img]
-            [pnp-proc.background :as background]
-            [pnp-proc.card :as card])
+            [pnp-orc.background :as background]
+            [pnp-orc.card :as card])
   (:import (java.awt Graphics2D Image)))
 
 (defn- crop-backs [cards card-dimensions]

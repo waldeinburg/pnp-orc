@@ -1,4 +1,4 @@
-(ns pnp-proc.core
+(ns pnp-orc.core
   (:gen-class))
 
 (defn -main

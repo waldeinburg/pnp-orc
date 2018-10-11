@@ -1,11 +1,11 @@
-(ns pnp-proc.games.supertall
+(ns pnp-orc.games.supertall
   "Recipe for Supertall, based on
    SUPERTALL-PNP.pdf
    SUPERTALL_MB-PNP.pdf"
-  (:require [pnp-proc.pdf :as pdf]
-            [pnp-proc.util :as util]
-            [pnp-proc.collecting :as collecting]
-            [pnp-proc.assembling :as assembling]
+  (:require [pnp-orc.pdf :as pdf]
+            [pnp-orc.util :as util]
+            [pnp-orc.collecting :as collecting]
+            [pnp-orc.assembling :as assembling]
             [mikera.image.core :as img]
             [clojure.math.numeric-tower :as math]))
 

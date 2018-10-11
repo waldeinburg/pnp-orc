@@ -1,4 +1,4 @@
-# Introduction to pnp-proc
+# Introduction to pnp-orc
 
 TODO: write [great documentation](http://jacobian.org/writing/what-to-write/)
 

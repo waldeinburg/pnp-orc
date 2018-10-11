@@ -1,6 +1,6 @@
-(ns pnp-proc.worker
-  (:require [pnp-proc.segmenting :as segmenting]
-            [pnp-proc.collecting :as collecting]))
+(ns pnp-orc.worker
+  (:require [pnp-orc.segmenting :as segmenting]
+            [pnp-orc.collecting :as collecting]))
 
 (defn- cards-from-img-set [[fronts-img backs-img]
                            offset-coords card-dimensions

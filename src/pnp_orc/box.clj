@@ -1,8 +1,8 @@
-(ns pnp-proc.box
+(ns pnp-orc.box
   (:require [clojure.tools.logging :as log]
             [clojure.math.numeric-tower :as math]
             [mikera.image.core :as img]
-            [pnp-proc.pdf :as pdf])
+            [pnp-orc.pdf :as pdf])
   (:import (org.apache.pdfbox.pdmodel.common PDRectangle)
            (org.apache.pdfbox.pdmodel PDDocument PDPage PDPageContentStream)
            (org.apache.pdfbox.pdmodel.graphics.image LosslessFactory PDImageXObject)

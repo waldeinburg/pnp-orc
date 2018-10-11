@@ -1,4 +1,4 @@
-(ns pnp-proc.util)
+(ns pnp-orc.util)
 
 ;;; The following functions does either basically or exactly the same.
 ;;; They ensure that recipes can be made by quickly reading coordinates in an

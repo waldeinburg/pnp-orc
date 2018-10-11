@@ -1,4 +1,4 @@
-# pnp-proc
+# pnp-orc
 
 FIXME: description
 
@@ -8,7 +8,7 @@ Download from http://example.com/FIXME.
 
 ## Usage
 
-    $ java -jar pnp-proc-0.1.0-standalone.jar [args]
+    $ java -jar pnp-orc-0.1.0-standalone.jar [args]
 
 
 ## Making a recipe for at game

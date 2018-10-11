@@ -1,4 +1,4 @@
-(ns pnp-proc.card
+(ns pnp-orc.card
   (:require [mikera.image.core :as img]))
 
 ;; CardImage holds an image and offset information.

@@ -1,8 +1,8 @@
-(ns pnp-proc.tools
+(ns pnp-orc.tools
   "Functions for preparing recipies"
   (:require [mikera.image.core  :as img]
-            [pnp-proc.file      :as file]
-            [pnp-proc.pdf       :as pdf]))
+            [pnp-orc.file      :as file]
+            [pnp-orc.pdf       :as pdf]))
 
 (defn dump-images-from-pdf [pdf folder]
   "Dump all images from a PDF."

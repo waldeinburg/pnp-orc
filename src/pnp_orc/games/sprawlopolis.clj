@@ -1,15 +1,15 @@
-(ns pnp-proc.games.sprawlopolis
+(ns pnp-orc.games.sprawlopolis
   "Recipe for Sprawolopolis, based on
    SPRAWLOPOLIS-PNP.pdf
    SPRAWLOPOLIS-CZ-PNP.pdf
    SPRAWLOPOLIS-POI-PNP.pdf
    SPRAWLOPOLIS-W-PNP.pdf"
   (:require [mikera.image.core :as img]
-            [pnp-proc.pdf :as pdf]
-            [pnp-proc.util :as util]
-            [pnp-proc.card :as card]
-            [pnp-proc.collecting :as collecting]
-            [pnp-proc.assembling :as assembling])
+            [pnp-orc.pdf :as pdf]
+            [pnp-orc.util :as util]
+            [pnp-orc.card :as card]
+            [pnp-orc.collecting :as collecting]
+            [pnp-orc.assembling :as assembling])
   (:import (org.apache.pdfbox.pdmodel PDDocument)))
 
 (defn make [output-path main-pdf cz-pdf poi-pdf w-pdf]
