@@ -23,7 +23,6 @@
   ;; that the image of the rules is the same size as the image as the cards.
   ;; The rules was thus scaled incorrectly. We fix this.
   (let [cards-scale (pdf/get-bitmap-scale main-pdf 1 1)
-        mb-rule-card-scale (pdf/get-bitmap-scale mb-pdf 0 0)
         top-left-cut [448 188]
         card-dimensions (util/card-dimensions-from-cut-lines top-left-cut
                                                              [1195 1228])
@@ -47,6 +46,10 @@
         mb-rc-img-sample (first mb-rule-card-images)
         mb-rc-height (img/height mb-rc-img-sample)
         mb-rc-width (* mb-rc-height (apply / card-dimensions))
+        ;; Scale to get the same card size as the main cards.
+        mb-rule-card-scale (* cards-scale
+                              (/ (second card-dimensions)
+                                 mb-rc-height))
         mb-rc-offset-x (math/round (/ (- (img/width mb-rc-img-sample)
                                          mb-rc-width)
                                       2))
