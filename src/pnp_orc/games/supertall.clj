@@ -7,7 +7,8 @@
             [pnp-orc.collecting :as collecting]
             [pnp-orc.assembling :as assembling]
             [mikera.image.core :as img]
-            [clojure.math.numeric-tower :as math]))
+            [clojure.math.numeric-tower :as math])
+  (:import (org.apache.pdfbox.pdmodel PDDocument)))
 
 (defn make [output-path main-pdf mb-pdf]
   ;; Same structure as Sprawlopolis except we only need one back. However,
@@ -58,8 +59,8 @@
                                                              [mb-rc-width
                                                               mb-rc-height]
                                                              [mb-rc-offset-x 0])]
-    (pdf/with-open-doc [org-doc main-pdf]
-      (pdf/with-make-pdf [doc output-path]
+    (pdf/with-open-doc [^PDDocument org-doc main-pdf]
+      (pdf/with-make-pdf [^PDDocument doc output-path]
         (pdf/add-page-from! doc org-doc 0)
         (pdf/add-images-as-pages! doc output-image-mb-rule-card mb-rule-card-scale)
         (pdf/add-images-as-pages! doc output-images-cards cards-scale)))))
