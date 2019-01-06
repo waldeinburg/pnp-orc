@@ -45,34 +45,33 @@
 (defn remove-nils [seq]
   (keep identity seq))
 
-(defn normalize-group-layout
+(defn normalize-group-layout [[front-order back-order :as order] seq]
   "Change the order of groups of elements in a sequence based on a sequence of indices.
    Useful for changing the order of images before using collect cards where the reversal
    of the backs will result in wrong pairing of images if the PDF is weird.
    An index kan be nil to mark a gap in the layout which should be filled with nil to
    create the correct pairing in collecting/collect-cards."
-  ([[front-order back-order :as order] seq]
-   (if-not (vector? front-order)
-     ;; Allow passing just one vector when front and back are equal.
-     (normalize-group-layout [order order] seq)
-     (->> seq
-          ;; Divide into groups
-          ;; The number of gaps are supposed to be the same on front and back
-          (partition (count (remove-nils front-order)))
-          ;; And group into front and back
-          (partition 2)
-          ;; Switch order in each group.
-          ;; We have vectors with a front and back sequence.
-          ;; For each map with the front and back order.
-          (mapcat (fn [set]
-                    (mapcat (fn [subseq order]
-                              (map (fn [i]
-                                     (if (nil? i)
-                                       nil
-                                       (nth subseq i)))
-                                   order))
-                            set
-                            [front-order back-order])))))))
+  (if-not (vector? front-order)
+    ;; Allow passing just one vector when front and back are equal.
+    (normalize-group-layout [order order] seq)
+    (->> seq
+         ;; Divide into groups
+         ;; The number of gaps are supposed to be the same on front and back
+         (partition (count (remove-nils front-order)))
+         ;; And group into front and back
+         (partition 2)
+         ;; Switch order in each group.
+         ;; We have vectors with a front and back sequence.
+         ;; For each map with the front and back order.
+         (mapcat (fn [set]
+                   (mapcat (fn [subseq order]
+                             (map (fn [i]
+                                    (if (nil? i)
+                                      nil
+                                      (nth subseq i)))
+                                  order))
+                           set
+                           [front-order back-order]))))))
 
 (defn- reverse-row-nil-order [row-order]
   "Helper for normalize-asym-group-layout"
@@ -102,30 +101,21 @@
         back-order (mapcat reverse-row-nil-order rows)]
     (normalize-group-layout [front-order back-order] seq)))
 
-(defn separate [seq & idx-groups]
-  "Return a list of vectors with values from seq.
-   The first vector is values not filtered by indexes.
+(defn take-idxs [coll & idx-groups]
+  "Return a lazy seq of vectors with values from seq.
+   The last vector is values not filtered by indexes.
    The rest are values from the indexes in idx-groups.
-   Used to take out specific cards out of a sequence."
+   Used to take out specific cards out of a sequence.
+   Idx-groups may be vector of indexes (may be repeated
+   or re-ordered) or a single index.
+   If an index is nil a nil is set."
   (let [idx-groups-normalized (map #(if (vector? %)
                                       %
                                       [%])
-                                   idx-groups)
-        group-idxs (range (count idx-groups))
-        main (transient [])
-        groups (repeatedly (count idx-groups)
-                           #(transient []))]
-    (doseq [i (range (count seq))]
-      (let [v (nth seq i)
-            in-grp-idx (some (fn [gi]
-                               (some #(when (= i %) gi)
-                                     (nth idx-groups-normalized gi)))
-                             group-idxs)]
-        (if (nil? in-grp-idx)
-          (conj! main v)
-          (conj! (nth groups in-grp-idx) v))))
-    (concat [(persistent! main)]
-            (map persistent! groups))))
+                                   idx-groups)]
+    (map (fn [idx-group]
+           (map #(and % (nth coll %)) idx-group))
+         idx-groups-normalized)))
 
 ;; TODO: maybe we should get the PDRectangle of the original
 ;; PDPage instead of using the image as point of departure.
