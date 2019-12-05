@@ -1,5 +1,8 @@
 # PnP Orc
 
+_**Disclaimer:** This Clojure based software is currently usable through the REPL only. Furthermore,
+it's poorly documented and I'm reconsidering some of the basic functionality. Use with care._
+
 PnP Orc is a tool for Print and Play files.
 
 PnP Orc currently have the following features:
