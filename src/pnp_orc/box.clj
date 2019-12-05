@@ -136,15 +136,15 @@
             close-flap-ends-k-factor
             close-flap-middle-k-factor
             top-flaps-size-factor
+            top-flap-slope-fold-side
+            top-flap-slope-close-side
             glue-bottom-gap glue-bottom-slope
             glue-flaps-size-factor glue-flaps-slope
             glue-side-gap glue-side-slope
-            top-flap-slope-fold-side
-            top-flap-slope-close-side
             close-hole-width
-            close-hole-height                               ; width / 2 for cicle
-            close-hole-ends-k-factor                        ; circle-k for circle
-            close-hole-middle-k-factor                      ; circle-k for circle
+            close-hole-height                               ; width / 2 for half cicle
+            close-hole-ends-k-factor                        ; circle-k for half circle
+            close-hole-middle-k-factor                      ; circle-k for half circle
             line-width]
      :or   {front-img-orient                :up
             back-img-orient                 :up
@@ -159,14 +159,14 @@
             close-flap-ends-k-factor        circle-k
             close-flap-middle-k-factor      circle-k
             top-flaps-size-factor           0.9
+            top-flap-slope-fold-side        1
+            top-flap-slope-close-side       3
             glue-bottom-gap                 2
             glue-bottom-slope               1
             glue-flaps-size-factor          0.85
             glue-flaps-slope                2
             glue-side-gap                   2
             glue-side-slope                 1
-            top-flap-slope-fold-side        1
-            top-flap-slope-close-side       3
             close-hole-width                15
             close-hole-height               5
             close-hole-ends-k-factor        0.1

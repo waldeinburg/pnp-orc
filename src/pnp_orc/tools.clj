@@ -1,5 +1,5 @@
 (ns pnp-orc.tools
-  "Functions for preparing recipies"
+  "Functions for preparing recipes"
   (:require [mikera.image.core  :as img]
             [pnp-orc.file      :as file]
             [pnp-orc.pdf       :as pdf]))
